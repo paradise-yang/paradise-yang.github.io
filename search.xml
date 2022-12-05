@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>NeuS</title>
+      <link href="/2022/12/05/paper/neus.html"/>
+      <url>/2022/12/05/paper/neus.html</url>
+      
+        <content type="html"><![CDATA[<h1 id="Scene-representation"><a href="#Scene-representation" class="headerlink" title="Scene representation"></a>Scene representation</h1><ul><li>SDF： $d_\Omega=f:\mathbf{x}\in\mathbb{R}^3\to signed\ distance\in\mathbb{R}$，$\mathbf{x}$ 为空间位置；</li><li>logistic density distribution $\phi_s(x)=s e^{-s x}/(1+e^{-s x})^2=\Phi_s^\prime(x)$，即 Sigmoid 函数的导数；</li><li>密度函数 S-density $\sigma(\mathbf{x})=\phi<em>s(d</em>\Omega(\mathbf))$；</li><li>辐射场函数 $c:(\mathbf{x,v})\in\mathbb{R}^3\times\mathbb{S}^2\to\mathbb{R}^3$，$\mathbf{v}$ 为观察方向；</li><li>待重建的表面被表示为 zero-level 集：$\mathcal{A}={\mathbf{x}\in\mathbb{R}^3|d_\Omega(\mathbf{x})=0}$；</li></ul><p>这里选用 logistic density distribution 是出于计算方便，且其标准差 $1/s\sim 0$ 也是一个可训练参数。想要达到 S-density $\phi<em>s(d</em>\Omega(\mathbf))$ 在重建的表面附近有显著的高值。</p><h1 id="Volume-Rendering"><a href="#Volume-Rendering" class="headerlink" title="Volume Rendering"></a>Volume Rendering</h1><p>定义从一给定像素发出的一条光线 ${\mathbf{x}(t)=\mathbf{o}+t \mathbf{v}|t\geq 0}$</p><ul><li><p>颜色 $C(\mathbf{o,v})=\int_0^{+\infty}w(t)c(\mathbf{x}(t),\mathbf{v})d t$，$w(t)$ 为点 $\mathbf{x}(t)$ 的权重;</p></li><li><p>权重函数的要求（Requirements on weight function.）</p><ul><li><strong>无偏性（Unbiased）。</strong>在光线与表面交点处 $\mathbf{x}(t^<em>)$，$w(t)$ 达到局部最大值，也即：$f(\mathbf{x}(t^</em>))=0$。</li><li><strong>可感知遮挡（Occlusion-aware）。</strong>若有 $f(t_0)=f(t_1),w(t_0)&gt;0,w(t_1)&gt;0\ \&amp;\ t_0<t_1$，则更靠近相机的点有更大的权重 $w(t_0)>w(t_1)$，也即对最终的输出颜色贡献更大。</li></ul></li><li>传统体渲染中，$w(t)=T(t)\sigma(t)$：$T(t)=exp(-\int_0^t \sigma(u)d u)$ 为沿光线累积透射率（accumulated transmittance），$\sigma(t)=\phi_s(f(\mathbf{x}(t)))$ 为体密度（volume density）。——有偏的，会在重建表面引入固有错误。</li></ul><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->    <td><center><img src=".\imgs\fig2.png"                        width="361.8" height="266.1"/></center></td>   <!--<center>标签将图片居中-->    </tr></table><ul><li><strong>我们的方案</strong> $w(t)=T(t)\rho(t)$：$T(t)=exp\left(-\int_0^t \rho(u)d u\right)$，$\rho(t)=\max\left(\frac{-\frac{d\Phi_s}{dt}(f(\mathbf{x}(t)))}{\Phi_s(f(\mathbf{x}(t)))},0\right)$ 为不透明密度（opaque density）函数。——在 SDF 的一阶近似中是无偏的。</li></ul><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->    <td><center><img src="/image/fig3-neus.png"                        width="241.8" height="300.8"/></center></td>   <!--<center>标签将图片居中-->    </tr></table><h2 id="Discretization"><a href="#Discretization" class="headerlink" title="Discretization"></a>Discretization</h2><p>沿光线采</p><h1 id="Training"><a href="#Training" class="headerlink" title="Training"></a>Training</h1><ul><li><p>损失函数 $\mathcal{L}=\mathcal{L}<em>{color}+\lambda\mathcal{L}</em>{reg}+\beta\mathcal{L}_{mask}$</p><ul><li>The color loss： $\mathcal{L}_{color}=\frac{1}{m}\sum_k\left|\hat{C}_k-C_k\right|$</li><li>An Eikonal term： $\mathcal{L}<em>{reg}=\frac{1}{n m}\sum</em>{i,k}\left(|\nabla f(\hat{\mathbf{x}}_{k,i})|_2-1\right)^2$</li><li>The optional mask loss： $\mathcal{L}<em>{mask}=BCE(M_k,\hat{W}_k)$，$\hat{W_k}=\sum</em>{i=1}^n T<em>{k,i}\alpha</em>{k,i}$ 沿相机光线的权重总和，$BCE$ 是二元交叉熵损失。</li></ul><p>其中 $M_k\in{0,1}$ 为是否有 mask，$n$ 为采样点数，$m$ 为 batch size。</p></li><li><p>分层采样（Hierarchical sampling）：</p><ul><li>先均匀采样，然后再粗略估计下迭代的进行依重要性采样；</li><li>只维护一个网络<ul><li>粗采样的概率基于固有标准差的 S-density $\phi_s(f(\mathbf))$ 计算；</li><li>精细采样的概率则是基于学习到的 $s$ 的 $\phi_s(f(\mathbf))$ 计算；</li></ul></li></ul></li></ul>]]></content>
+      
+      
+      <categories>
+          
+          <category> Paper </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Paper </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>体渲染相关知识</title>
       <link href="/2022/11/17/volume.html"/>
       <url>/2022/11/17/volume.html</url>
@@ -188,8 +213,8 @@
     
     <entry>
       <title>《Jagten》（狩猎）</title>
-      <link href="/2022/11/05/jagten.html"/>
-      <url>/2022/11/05/jagten.html</url>
+      <link href="/2022/11/05/movie/jagten.html"/>
+      <url>/2022/11/05/movie/jagten.html</url>
       
         <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-剧情"><a href="#Paradise的电影乐园-剧情" class="headerlink" title="#Paradise的电影乐园# 剧情"></a>#Paradise的电影乐园# 剧情</h1><p>导演：Thomas Vinterberg<br>主演：Mads Mikkelsen<br>上映时间：2012年05月20日</p><p><strong>“</strong><br><strong>看着我！</strong><br><strong>看着我的眼睛，</strong><br><strong>看看我的眼睛里有什么？</strong><br><strong>你看见了什么？</strong><br><strong>什么都没有，</strong><br><strong>一无所有。</strong><br><strong>”</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_6.jpg"                        width="432" height="617.2"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>这是一部，说是寒冷彻骨都不为过的丹麦电影。</p><p>就像每年都要步入的寒冬一样，会在仍处于颤栗中酝酿出近乎绝望的压抑与狂躁，毫不留情且毫无防备的在人性与社会道德上划出深入刻骨的一刀，而且是每年都要划上一般。</p><p>私以为，这更是一部当今互联网人基本上都应该好好看的电影。</p><p>初看这部电影的人，可能处在对其中的孩子“谎话连篇”的愤懑之中，但这绝不是电影的全部。孩子是特殊的弱势群体，在生理和心理都不成熟的阶段，尤其是原生家庭的不作为与养育“只养无育”之下，错误的表达所谓的情感与见解，能一味的归咎于成年人中的“恶”吗？恐怖最大的恶是将其从天使逼入魔鬼的人。</p><p>最可恶的并不是孩子，而是<strong>那群虚伪的，带有偏见的，先入为主的，自封为卫道士的傲慢的大人们。</strong></p><p>卢卡斯因为几句儿童的呓语便毁灭了本归是向好的人生，毁灭过程中最大的破坏力并不是直接由孩子带来的，而是由所谓打着“正义感”旗号的群体带来的，而是由社会群体的排斥与异化所带来的。人是群居动物，这种孤立于排斥的隔阂异化，所带来的伤害无疑是巨大到不可估量的，足以毁灭一个人的所有社会属性了，更何况，这种排斥和针对性的有意异化是冤屈的、是无法辩驳言明的。</p><p><strong>眼见，都并非为实，更何况道听途说？</strong></p><p><strong>在蒙蔽了双眼下驱使出来的“正义感”，是盲目的，是狗屎，是吃人的恶！</strong></p><p><strong>一种被扭曲的思想一旦植入大脑，错，就会无止境的继续下去。</strong>人往往是最不理智的高智慧生物，很可笑的矛盾点，最不理智与智慧。大部分人一旦相信自己是正义的，便会自动带上了有色眼镜，挥起了正义的鞭笞，认为所看到的一切都是支持自己想法的证据，与之相悖的线索全部被刻意忽略或者曲解，践行正义之道、执行正义审判，殊不知挥下的鞭笞是犹如杀人的死神镰刀。不过这就是事实，盲目的正义者们不会关心真相究竟是什么。因为抢站在道德的制高点批判是很容易的一件事，而自己本身的言行会对他人造成怎样的影响却很难预料，甚至不去顾及。人们害怕偏见，害怕排斥，害怕异化，但更多的时候是亲自促成了偏见，亲自执刀而行。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_4.png"                        width="432" height="540"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>这部影片的张力是相当足够的，从开头小镇的和睦祥和到群起的“正义”排斥，导演就是在不温不火的叙事和理智暖色的镜头之中酝酿了所有的排斥，即使是最温暖午后阳光，背后掩藏的都是开枪的“正义之士”。这种张力就是建立在这种排斥和冤屈的对立上，然后精准到位的把这种恶毒的人际对立和人物内心的崩塌完美的展现了出来。作为观影的我们来说，带入故事之后，那种慢慢酝酿而来的恶意和仇恨强烈到近乎可以演化为暴戾之气，不过，那种积郁已久的愤怒迟迟无法爆炸，最后沦为彻骨的寒意。没办法，这就是现实。毫不掩饰的说，第一次观影的我，在众多积怨之下，为男主默泪。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_5.jpg"                        width="648" height="324"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>影片最让人印象深刻的便是在教堂那一幕。卢卡斯非常讽刺来到教堂这个众人乞求救赎的地方，或许在这里所有人顶着上帝普世之爱的光环，是唯一能让他这个“罪人”和一社区“善人”平静共处一室的地方，孩子们用天使般的声音开始唱圣诞颂歌时，这种恶与纯真的巨大反差让男主角的理智处于崩溃边缘，但是终究理智还是没有崩溃。但是当卢卡斯望向身后曾是挚友的人，指控自己的一家低头私语时，他崩溃了，即使事实是挚友一家私语并不是谈论卢卡斯，但是那个动作如烈火灼烧之痛，他崩溃了，愤怒的起身打了挚友几拳，绝望的拉着挚友怒吼到：“看着我！看着我的眼睛！看看我的眼睛里有什么？你看见了什么？什么都没有了，一无所有。”对，没有了，被扼杀完了已经，一无所剩。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_3.png"                        width="432" height="288"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>《狩猎》这个片名也是有一定意味存在的，在最后一幕，卢卡斯就是社会群体森林中那只被追猎的麋鹿，毫无防备，甚至心怀感激的袒露在黑暗森林之中，无数躲在暗中的猎人可以中伤他，而最后那惊人心魄的一枪，足够彰显自封社会傲慢卫道士最大的恶意了，引用这部电影最具知名度的影评：</p><p><strong>“</strong></p><p><strong>枪响了。</strong></p><p><strong>你看到是谁开的枪吗？</strong></p><p><strong>我看不清，</strong></p><p><strong>他站在道德制高点上，他在阳光下。</strong></p><p><strong>”</strong></p><p><strong>他们看似伸张“正义”，却不以真凭实据为基础；</strong></p><p><strong>他们看似维持“公正”，却不以实事求是为准则；</strong></p><p><strong>他们看似通情达理，却在种种行为举止中透露出令人作呕的气息。</strong></p><p><strong>这是最让人心寒的一部分，</strong></p><p><strong>这是最让人愤怒的一部分，</strong></p><p><strong>这是最让人无奈的一部分，</strong></p><p><strong>这同样也是最尖酸讽刺的一部分。</strong></p><p>最后的题外话，不会放在这个平台说的，这种莫须有的道德审判，从古至今已经不少了。红如阮玲玉要自杀，杰克逊也要沉沦。而到了网络时代，这样的案例简直数不胜数：70码的时候，所有人都相信那个受审的不是吴斌是个替身，哪怕警方拿出所有证据；湖北29岁最年轻市长，周森锋必然上面有人；方舟子只要坚持不懈地骂“韩骗子”他就是个抄袭犯代笔作家，出版手稿也无法自证。反正无休止的怀疑、质疑、有罪推定，成本由被怀疑对象承担，收益都是自己的。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_2.jpg"                        width="637.8" height="425.2"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table>]]></content>
       
@@ -242,8 +267,8 @@
     
     <entry>
       <title>《Becoming Jane》(成为简·奥斯汀)</title>
-      <link href="/2022/11/03/becoming-jane.html"/>
-      <url>/2022/11/03/becoming-jane.html</url>
+      <link href="/2022/11/03/movie/becoming-jane.html"/>
+      <url>/2022/11/03/movie/becoming-jane.html</url>
       
         <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-传记-爱情"><a href="#Paradise的电影乐园-传记-爱情" class="headerlink" title="#Paradise的电影乐园# 传记 爱情"></a>#Paradise的电影乐园# 传记 爱情</h1><p>导演：Julian Jarrold<br>主演：Anne Hathaway，James McAvoy<br>上映时间：2007年03月09日</p><p><strong>“</strong><br><strong>Sometimes affection is a shy flower that takes time to blossom.</strong><br><strong>”</strong><br><strong>“</strong><br><strong>Affection is desirable,</strong><br><strong>Money is absolutely indispensable.</strong><br><strong>”</strong>  </p><p>她的心被扰乱了，只是一阵 夏日的狂风。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/becoming_jane_3.jpg"                        width="511.2" height="556"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>在那个英式典雅的时代，</p><p>一个安静的清晨，仿佛古典戏剧一般的开始，一切充满着田园牧歌与优雅的浪漫，</p><p>随着简的钢琴声的响起，群鸟惊飞，众人惊起，从一开始就奠定了简与保守英国乡村生活的格格不入。  </p><p>末了，已是作家的简偶然瞥见了前来观摩自己作品的汤姆，如今却已身为人父，</p><p>当女儿要求简为大家朗读作品时，汤姆严厉的呵斥：“简！” </p><p>错愕写满了简的脸上，</p><p>这是一个无法抵御的桥段，</p><p>本以为一切走向了终结，本以为终是尘埃落定，</p><p>谁料却是一直绵延交织在两人的余生——汤姆以简的名字为女儿命名，而简所写的故事也藏着他们的影子。</p><p>爱，带着观望般的珍重，永远不会厌倦和衰灭，融漾在淡淡的牵念和释然的遗憾之间，绵长一生，徘徊一生……   </p><p></p><p>世俗阻挡的爱情，古往今来的文人骚客写出了太多太多，或壮烈决绝，或凄美哀婉。</p><p>不是每个人都能如罗密欧那般欧式的决绝，如祝英台般中式的缠绵，</p><p>在此，更多的是一种生活的平静，无论是抗争还是妥协。   </p><p></p><p><strong>并不是只有激情迸发时弃世孤行的爱情才最真挚可贵，</strong></p><p><strong>若把世界逼堵到只容两个人立足，</strong></p><p><strong>结局也许早已违背当时的初衷。</strong></p><p><strong>若有天长地久的厮守，也必有终身不忘的情长。</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/becoming_jane_2.jpg"                        width="840" height="560.7"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table>]]></content>
       
@@ -257,9 +282,9 @@
       
         <tags>
             
-            <tag> Paradise的电影乐园 爱情 </tag>
-            
             <tag> Paradise的电影乐园 </tag>
+            
+            <tag> Paradise的电影乐园 爱情 </tag>
             
             <tag> Paradise的电影乐园 传记 </tag>
             
@@ -271,8 +296,8 @@
     
     <entry>
       <title>《L&#39;Argent》(钱)</title>
-      <link href="/2022/11/02/largent.html"/>
-      <url>/2022/11/02/largent.html</url>
+      <link href="/2022/11/02/movie/largent.html"/>
+      <url>/2022/11/02/movie/largent.html</url>
       
         <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-剧情"><a href="#Paradise的电影乐园-剧情" class="headerlink" title="#Paradise的电影乐园# 剧情"></a>#Paradise的电影乐园# 剧情</h1><p>导演：Robert Bresson<br>主演：Christian Patey<br>上映时间：1983年  </p><p><strong>“</strong><br><strong>当你意识到自己的存在和社会的荒谬，</strong><br><strong>而你别无选择时，</strong><br><strong>你会怎么办？</strong><br><strong>他们说</strong><br> <strong>‘ 服从吧，只要你别多管闲事；</strong><br><strong>等着吧，世界很快就会幸福起来。’</strong><br><strong>但我不想等到全世界都幸福，</strong><br><strong>相信我，伊文，那只会等到你变傻，</strong><br><strong>我想现在就得到幸福，用我自己的方法。</strong><br><strong>钱！</strong><br><strong>有形之神，无所不能。</strong><br><strong>”</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_3.jpg"                        width="691.2" height="388.8"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>法国导演布列松的最后一部作品，一如既往的极简与冷峻，把一切可能引起情绪波动的镜头都省略，唯余平淡、留白。（困的时候真不能看布列松。）    </p><p>看布列松的电影，就好像在看一条三文鱼放在案板上切割，清晰带血，不留一丝余地。  </p><p>500法郎假钞辗转多人，最后经由一场伪证锤死无辜的伊文以牢狱之灾，但这不是一切的结束，而是冷冽悲剧的开始……虚无伴随左右，毁灭不是推波助澜，而是奔赴相拥的终点。  </p><p><strong>推荐理由：</strong></p><p>《电影手册》上法国导演排行榜上名列第一的导演，其最后一部作品将个人风格发挥到了极致。</p><p>“人物是属于导演理念的工具”，电影中人的眼神之间像隔了一层墙，你无法感受到人的呼吸和情绪的冷暖；</p><p>宛似“木偶人”的动作不会诱导无谓的煽情，不会让你有任何偏见与道德审视；</p><p>环境的先导性与延滞性，只提取结果的决定性瞬间，极尽的留白与省略之能事，画外音的自行填补，</p><p>这种冷峻且客观的极简镜头，只是为了展示最终酷烈且无望的主题。  </p><p>不得不提的就是电影的画面：极具老式的胶卷风格，搭配法式建筑与物品，搭配人物如模特的冷峻，这极简的镜头语言将恰到好处的绝佳构图发挥到了极致，随便抽帧便是一幅妥妥的油画或摄影佳作。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_2.jpg"                        width="635" height="384"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>纯粹的善良是存在的，救赎的希望也给予了，但，来不及了。</p><p>他高举斧子：“钱在哪里？”，老妇人的沉默换来了伊文在疯狂中挥下了斧子，</p><p>其后，他踉踉跄跄的走出来，连粘满血的裤子都没有换下，径直的走进一家有警察的酒馆，在喝完酒保为其倒下的酒后，自首。</p><p>料峭，所有的一切都崩溃了，既然无法摆脱困境与煎熬，那我选择堕入虚无与毁灭的深渊，拥抱最后的惨淡。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_4.jpg"                        width="597" height="360"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>钱之下，一切的无能为力、罪恶导向与价值虚无！  </p><p>金钱与权力结构以其固有的“神力”堵住了底层人的生存之路，</p><p>并于百态之下剥夺你仅剩的尊严，</p><p>再于极端情形之下助你踏上一切的罪恶之路，</p><p>就完了么？</p><p>没有，还要在制高点给予你最终的审视、批判你的原罪。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_5.jpg"                        width="480" height="270"/>            </center>        </td>   <!--<center>标签将图片居中-->        <td>            <center>            <img src="/image/movie/largent_6.jpg"                        width="480" height="270"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table>]]></content>
       
@@ -298,8 +323,8 @@
     
     <entry>
       <title>《About Time》(时空恋旅人)</title>
-      <link href="/2022/11/01/about_time.html"/>
-      <url>/2022/11/01/about_time.html</url>
+      <link href="/2022/11/01/movie/about_time.html"/>
+      <url>/2022/11/01/movie/about_time.html</url>
       
         <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-爱情"><a href="#Paradise的电影乐园-爱情" class="headerlink" title="#Paradise的电影乐园#  爱情"></a>#Paradise的电影乐园#  爱情</h1><p>导演：Richard Curtis</p><p>主演：Domhnall Gleeson，Rachel McAdams</p><p>上映时间：2013年09月04日</p><p><strong>“</strong><br><strong>We’re all traveling through time together</strong><br><strong>every day of our lives.</strong><br><strong>All we can do is</strong><br><strong>do our best to relish this remarkable ride.</strong><br><strong>“</strong>   </p><p>披着科幻超能力外衣的人生爱情小电影。  </p><p>不顾一切要找回认识你的开始、尴尬到不知所措的同行之路、</p><p>不顾一切飞奔回家的普通求婚、每天分别向左向右的地铁站台、</p><p>一场狂风暴雨下荒唐而又甜蜜的婚礼，以及终究是生活的平凡。  </p><p>不要纠结时间悖论的逻辑Bug，去感受另一种生活的交错、平凡与融洽。  </p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/about_time_3.gif"                        width="648" height="269.4"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p><strong>推荐理由：</strong></p><p>初看前半段你会以为是男主超能力的逆袭之路，</p><p>恰恰不然，拥有的能力是为了步入于我而言奢侈的爱情，</p><p>即使我有无限可以容错自身选择的能力，但是选择依然是你，为了遇见你、为了认识你、为了留住你，依然是你；</p><p>虽然我可以选择重新去过每一天，第一次用来经历与度过，第二次则是体验未注意到的小美好，</p><p>但是我终归有着的是当下与你的美好，就像已经经历过一次一样，享受我们这平凡又非凡的生命中每一天。  </p><p>镜头语言是文艺的，角色的内心随着镜头展现的淋漓尽致；另外，配乐是刚刚好的精妙。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/about_time_2.jpg"                        width="648" height="648"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>穿越的能力会有修改遗憾的可能，这或许是存在于另一维度或者世界的力量，是我们于这个平凡世界里所寄托的无限期冀。  </p><p>如果我们也有穿越时空的能力，每一次遗憾也就会变得有迹可循，离别后的再一次重逢也会很有意义。    </p><p>但是即使已经足够非凡的你我仍然是有着平凡的一生，</p><p>我们可以选择短暂的跳脱并游离于外世，</p><p>不过皆知那不是长久之计，所以尽早地着眼你我前方的美好与未知吧。</p>]]></content>
       
@@ -313,9 +338,9 @@
       
         <tags>
             
-            <tag> Paradise的电影乐园 爱情 </tag>
-            
             <tag> Paradise的电影乐园 </tag>
+            
+            <tag> Paradise的电影乐园 爱情 </tag>
             
         </tags>
       
