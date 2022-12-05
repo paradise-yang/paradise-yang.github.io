@@ -7,7 +7,7 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://paradise-yang.github.io/image/neus/neus.png">
 <meta property="article:published_time" content="2022-12-04T16:02:04.000Z">
-<meta property="article:modified_time" content="2022-12-05T12:16:18.893Z">
+<meta property="article:modified_time" content="2022-12-05T12:30:26.329Z">
 <meta property="article:author" content="Paradise">
 <meta property="article:tag" content="Paper">
 <meta name="twitter:card" content="summary">
@@ -53,7 +53,7 @@
   isHome: false,
   isHighlightShrink: false,
   isToc: true,
-  postUpdate: '2022-12-05 20:16:18'
+  postUpdate: '2022-12-05 20:30:26'
 }</script><noscript><style type="text/css">
   #nav {
     opacity: 1
@@ -172,13 +172,13 @@
 </li>
 <li><p>待重建的表面被表示为 zero-level 集：$\mathcal{S}={\mathbf{x}\in\mathbb{R}^3|f(\mathbf{x})=0}$；</p>
 </li>
-<li>密度函数 S-density：$\sigma(\mathbf{x})=\phi_s(f(\mathbf))$；</li>
+<li>密度函数 S-density：$\sigma(\mathbf{x})=\phi_s(f(\mathbf{x}))$；</li>
 <li>辐射场函数 $c:(\mathbf{x,v})\in\mathbb{R}^3\times\mathbb{S}^2\to\mathbb{R}^3$，$\mathbf{v}$ 为观察方向；<ul>
 <li>对空间任一点 $\mathbf{x}$，在给定观察方向 $\mathbf{v}$ 下的颜色值；</li>
 </ul>
 </li>
 </ul>
-<p>期望的是训练结果，待重建的表面SDF接近于 $0$，其他地方为有向距离；并且训练收敛后 $1/s\sim 0$，S-density $\phi_s(f(\mathbf))$ 在待重建的表面附近有显著的高值，其他位置趋近于 $0$（如下图）。</p>
+<p>期望的是训练结果，待重建的表面SDF接近于 $0$，其他地方为有向距离；并且训练收敛后 $1/s\sim 0$，S-density $\phi_s(f(\mathbf{x}))$ 在待重建的表面附近有显著的高值，其他位置趋近于 $0$（如下图）。</p>
 <table frame=void>  <!--使用table标签，且frame=void消除外边框-->
     <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->
     <td><center><img src="/image/neus/sigmod.png"   
@@ -277,8 +277,8 @@ T_i&=\prod_{j=1}^{i-1}(1-\alpha_j) \\
 <ul>
 <li>首先对射线上的点进行均匀采样，然后在粗概率估计的基础上迭代地进行重要性采样；</li>
 <li>只维护一个网络（不像NeRF中同时维护粗糙和精细两个网络）<ul>
-<li>粗采样的概率基于固有标准差的 S-density $\phi_s(f(\mathbf))$ 计算；</li>
-<li>精细采样的概率则是基于学习到的 $s$ 的 $\phi_s(f(\mathbf))$ 计算；</li>
+<li>粗采样的概率基于固有标准差的 S-density $\phi_s(f(\mathbf{x}))$ 计算；</li>
+<li>精细采样的概率则是基于学习到的 $s$ 的 $\phi_s(f(\mathbf{x}))$ 计算；</li>
 <li>具体细节参见原论文附录以及渲染代码。</li>
 </ul>
 </li>
