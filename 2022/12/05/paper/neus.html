@@ -7,7 +7,7 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://paradise-yang.github.io/image/neus/neus.png">
 <meta property="article:published_time" content="2022-12-04T16:02:04.000Z">
-<meta property="article:modified_time" content="2022-12-05T11:17:50.177Z">
+<meta property="article:modified_time" content="2022-12-05T11:32:39.323Z">
 <meta property="article:author" content="Paradise">
 <meta property="article:tag" content="Paper">
 <meta name="twitter:card" content="summary">
@@ -53,7 +53,7 @@
   isHome: false,
   isHighlightShrink: false,
   isToc: true,
-  postUpdate: '2022-12-05 19:17:50'
+  postUpdate: '2022-12-05 19:32:39'
 }</script><noscript><style type="text/css">
   #nav {
     opacity: 1
@@ -182,20 +182,21 @@
 <table frame=void>  <!--使用table标签，且frame=void消除外边框-->
     <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->
     <td><center><img src="/image/neus/sigmod.png"   
-                     width="180" height="113"/></center></td>   <!--<center>标签将图片居中-->
+                     width="216" height="135.6"/></center></td>   <!--<center>标签将图片居中-->
     </tr>
 </table>
+
 
 <h2 id="Volume-Rendering"><a href="#Volume-Rendering" class="headerlink" title="Volume Rendering"></a>Volume Rendering</h2><p>为了学习（训练）神经SDF表示和辐射场的参数，作者建议采用体渲染的方法来渲染SDF表示中的图片，所以，对任一图片内给定像素，其基于相机内部光心原点 $\mathbf{o}$ 在观察方向 $\mathbf{v}$ 发出的一条光线 ${\mathbf{x}(t)=\mathbf{o}+t \mathbf{v}|t\geq 0}$，沿光线累积颜色：</p>
 <script type="math/tex; mode=display">
 C(\mathbf{o,v})=\int_0^{+\infty}w(t)c(\mathbf{x}(t),\mathbf{v})d t</script><p>$w(t)$ 为点 $\mathbf{x}(t)$ 的权重，$C(\mathbf{o,v})$ 即为这个像素的输出颜色。</p>
 <h2 id="Requirements-on-weight-function"><a href="#Requirements-on-weight-function" class="headerlink" title="Requirements on weight function"></a>Requirements on weight function</h2><p>可以说，从 2D 图片学习精确的 SDF 表示的关键就在于构建出一种输出的颜色值与 SDF 的合适的联系，也即，基于场景的 SDF $f$ 推导出一个合适的权重函数。对权重函数的要求如下：</p>
 <ul>
-<li><strong>无偏性（Unbiased）。</strong>在光线与表面交点处 $\mathbf{x}(t^<em>)$，也即：$f(\mathbf{x}(t^</em>))=0$ 时，$w(t)$ 达到局部最大值；<ul>
+<li><strong>无偏性（Unbiased）。</strong>在光线与表面交点处 $\mathbf{x}(t^\ast)$，也即：$f(\mathbf{x}(t^\ast))=0$ 时，$w(t)$ 达到局部最大值；<ul>
 <li>保证光线与表面（SDF零水平集）交点对像素颜色贡献最大；</li>
 </ul>
 </li>
-<li><strong>感知遮挡（Occlusion-aware）。</strong>若有 $f(t_0)=f(t_1),w(t_0)&gt;0,w(t_1)&gt;0\ \&amp;\ t_0<t_1$，则更靠近相机的点有更大的权重 $w(t_0)>w(t_1)$，也即对最终的输出颜色贡献更大；<ul>
+<li><strong>感知遮挡（Occlusion-aware）。</strong>若有 $f(t_0)=f(t_1),w(t_0)&gt;0,w(t_1)&gt;0,t_0<t_1$，则更靠近相机的点有更大的权重 $w(t_0)>w(t_1)$，也即对最终的输出颜色贡献更大；<ul>
 <li>确保当光线依次通过多个表面时，渲染过程将正确地使用离相机最近的表面的颜色来计算输出颜色。</li>
 </ul>
 </li>
@@ -224,7 +225,7 @@ T(t)&=exp\left(-\int_0^t \rho(u)d u\right),&\cdots(2)\\
 
 
 
-<h2 id="Discretization"><a href="#Discretization" class="headerlink" title="Discretization"></a>Discretization</h2><p>为了对不透明密度和权重函数的离散化形式，采用类似 NeRF 中的同样的估计方法。沿光线采样 $n$ 个点 ${\mathbf{x}<em>i=\mathbf{o}+t_i\mathbf{v},t_i&lt;t</em>{i+1}}^n_{i=1}$，从而沿此光线的像素处颜色为 ：</p>
+<h2 id="Discretization"><a href="#Discretization" class="headerlink" title="Discretization"></a>Discretization</h2><p>为了对不透明密度和权重函数的离散化形式，采用类似 NeRF 中的同样的估计方法。沿光线采样 $n$ 个点 $\mathbf{x}<em>i=\mathbf{o}+t_i\mathbf{v},t_i&lt;t</em>{i+1},n=1,..,n$，从而沿此光线的像素处颜色为 ：</p>
 <script type="math/tex; mode=display">
 \begin{aligned}
 \hat{C}&=\sum_{i=1}^n T_i\alpha_i c_i \\
@@ -248,11 +249,11 @@ T_i&=\prod_{j=1}^{i-1}(1-\alpha_j) \\
 <li><p>简单证明：</p>
 <p>假设上述 $f$ 是定义在 $\Omega\in\mathbb{R}^3$ 上的 SDF，</p>
 <p>对 $\forall \mathbf{x}\notin\partial\Omega$，存在一个最近点 $\mathbf{y}\in\partial\Omega$，</p>
-<p>因此 $\mathbf{v}=\frac{\mathbf{y-x}}{|\mathbf{y-x}|}$ 是最速下降方向，也即与 $\nabla f(\mathbf{x})$ 同向，</p>
+<p>因此 $\mathbf{v}=\frac{\mathbf{y-x}}{\parallel\mathbf{y-x}\parallel}$ 是最速下降方向，也即与 $\nabla f(\mathbf{x})$ 同向，</p>
 <p>又因 $f$ 定义，即恰好表示其到最近点的距离，</p>
 <p>故沿 $\mathbf{v}$ 方向移动一单位，$f$ 也变化一单位，</p>
-<p>即方向导数满足 $D_v f=\nabla f(\mathbf{x})\cdot\mathbf{v}=|\nabla f(\mathbf{x})||\mathbf{v}|\cos\theta=1$，</p>
-<p>故 $|\nabla f|=1$。</p>
+<p>即方向导数满足 $D_v f=\nabla f(\mathbf{x})\cdot\mathbf{v}=\parallel\nabla f(\mathbf{x})\parallel\parallel\mathbf{v}\parallel\cos\theta=1$，</p>
+<p>故 $\parallel\nabla f\parallel=1$。</p>
 </li>
 </ul>
 </li>
