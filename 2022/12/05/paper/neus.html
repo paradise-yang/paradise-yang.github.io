@@ -7,7 +7,7 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://paradise-yang.github.io/image/neus/neus.png">
 <meta property="article:published_time" content="2022-12-04T16:02:04.000Z">
-<meta property="article:modified_time" content="2022-12-05T12:02:09.722Z">
+<meta property="article:modified_time" content="2022-12-05T12:16:18.893Z">
 <meta property="article:author" content="Paradise">
 <meta property="article:tag" content="Paper">
 <meta name="twitter:card" content="summary">
@@ -53,7 +53,7 @@
   isHome: false,
   isHighlightShrink: false,
   isToc: true,
-  postUpdate: '2022-12-05 20:02:09'
+  postUpdate: '2022-12-05 20:16:18'
 }</script><noscript><style type="text/css">
   #nav {
     opacity: 1
@@ -192,12 +192,18 @@
 C(\mathbf{o,v})=\int_0^{+\infty}w(t)c(\mathbf{x}(t),\mathbf{v})d t</script><p>$w(t)$ 为点 $\mathbf{x}(t)$ 的权重，$C(\mathbf{o,v})$ 即为这个像素的输出颜色。</p>
 <h2 id="Requirements-on-weight-function"><a href="#Requirements-on-weight-function" class="headerlink" title="Requirements on weight function"></a>Requirements on weight function</h2><p>可以说，从 2D 图片学习精确的 SDF 表示的关键就在于构建出一种输出的颜色值与 SDF 的合适的联系，也即，基于场景的 SDF $f$ 推导出一个合适的权重函数。对权重函数的要求如下：</p>
 <ul>
-<li><strong>无偏性（Unbiased）。</strong>在光线与表面交点处 $\mathbf{x}(t^\ast)$，也即：$f(\mathbf{x}(t^\ast))=0$ 时，$w(t)$ 达到局部最大值；<ul>
+<li><p><strong>无偏性（Unbiased）。</strong>在光线与表面交点处 $\mathbf{x}(t^\ast)$，也即：$f(\mathbf{x}(t^\ast))=0$ 时，$w(t)$ 达到局部最大值；</p>
+<ul>
 <li>保证光线与表面（SDF零水平集）交点对像素颜色贡献最大；</li>
 </ul>
 </li>
-<li><strong>感知遮挡（Occlusion-aware）。</strong>若有 $f(t_0)=f(t_1)$，$t_0<t_1$，$w(t_0)>0$，$w(t_1)&gt;0$，则更靠近相机的点有更大的权重 $w(t_0)&gt;w(t_1)$，也即对最终的输出颜色贡献更大；<ul>
-<li>确保当光线依次通过多个表面时，渲染过程将正确地使用离相机最近的表面的颜色来计算输出颜色。</li>
+<li><p><strong>感知遮挡（Occlusion-aware）。</strong></p>
+<ul>
+<li><script type="math/tex; mode=display">
+f(t_0)=f(t_1),\quad t_0<t_1,\quad w(t_0)>0,w(t_1)>0 \Rightarrow w(t_0)>w(t_1)</script><p>即更靠近相机的点有更大的权重，也即对最终的输出颜色贡献更大；</p>
+</li>
+<li><p>确保当光线依次通过多个表面时，渲染过程将正确地使用离相机最近的表面的颜色来计算输出颜色。</p>
+</li>
 </ul>
 </li>
 </ul>
@@ -237,13 +243,15 @@ T_i&=\prod_{j=1}^{i-1}(1-\alpha_j) \\
 <li><p>损失函数：</p>
 <script type="math/tex; mode=display">
 \mathcal{L}=\mathcal{L}_{color}+\lambda\mathcal{L}_{reg}+\beta\mathcal{L}_{mask}</script><ul>
-<li><p>光度（颜色）损失： $\mathcal{L}_{color}=\frac{1}{m}\sum_k\left|\hat{C}_k-C_k\right|$；</p>
-<ul>
+<li><p>光度（颜色）损失：</p>
+<script type="math/tex; mode=display">
+\mathcal{L}_{color}=\frac{1}{m}\sum_k\left|\hat{C}_k-C_k\right|</script><ul>
 <li>监督渲染颜色接近真实值颜色</li>
 </ul>
 </li>
-<li><p>Eikonal loss： $\mathcal{L}<em>{reg}=\frac{1}{nm}\sum</em>{i,k}\left(\parallel\nabla f(\hat{\mathbf{x}}_{k,i})\parallel_2-1\right)^2$；</p>
-<ul>
+<li><p>Eikonal loss： </p>
+<script type="math/tex; mode=display">
+\mathcal{L}_{reg}=\frac{1}{nm}\sum_{i,k}\left(\parallel\nabla f(\hat{\mathbf{x}}_{k,i})\parallel_2-1\right)^2</script><ul>
 <li><p>约束 MLP 学习出的 SDF 的导数满足导数模长等于 1 的性质；</p>
 </li>
 <li><p>简单证明：</p>
@@ -257,9 +265,10 @@ T_i&=\prod_{j=1}^{i-1}(1-\alpha_j) \\
 </li>
 </ul>
 </li>
-<li><p>可选的掩码损失： $\mathcal{L}_{mask}=BCE(M_k,\hat{W}_k)$</p>
-<ul>
-<li>$\hat{W}<em>k=\sum</em>{i=1}^nT<em>{k,i}\alpha</em>{k,i}$ 沿相机光线的权重总和，$BCE$ 是二元交叉熵损失。</li>
+<li><p>可选的掩码损失： </p>
+<script type="math/tex; mode=display">
+\mathcal{L}_{mask}=BCE(M_k,\hat{W}_k),\quad\hat{W}_k=\sum_{i=1}^nT_{k,i}\alpha_{k,i}</script><ul>
+<li>$\hat{W}_k$ 沿相机光线的权重总和，$BCE$ 是二元交叉熵损失。</li>
 </ul>
 </li>
 </ul>
