@@ -7,7 +7,7 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://paradise-yang.github.io/image/nerf/nerf.png">
 <meta property="article:published_time" content="2022-12-03T16:02:04.000Z">
-<meta property="article:modified_time" content="2022-12-06T05:15:53.071Z">
+<meta property="article:modified_time" content="2022-12-06T05:22:14.349Z">
 <meta property="article:author" content="Paradise">
 <meta property="article:tag" content="NeRF">
 <meta property="article:tag" content="Paper">
@@ -54,7 +54,7 @@
   isHome: false,
   isHighlightShrink: false,
   isToc: true,
-  postUpdate: '2022-12-06 13:15:53'
+  postUpdate: '2022-12-06 13:22:14'
 }</script><noscript><style type="text/css">
   #nav {
     opacity: 1
@@ -191,7 +191,9 @@ t_i \sim \mathcal{U} [t_n+\frac{i-1}{N}(t_f-t_n),t_n+\frac{i}{N}(t_f-t_n)]</scri
 <script type="math/tex; mode=display">
 C(\mathbf{r}) = \sum_{i=1}^{N} T_i \cdot (1-e^{-\sigma_i \delta_i}) \mathbf{c}_i,\quad where\ T_i=exp(-\sum_{j=1}^{i-1}\sigma_j\delta_j), \quad \delta_i=t_{i+1}-t_i</script><h1 id="Optimizing-a-Neural-Radiance-Field"><a href="#Optimizing-a-Neural-Radiance-Field" class="headerlink" title="Optimizing a Neural Radiance Field"></a>Optimizing a Neural Radiance Field</h1><p>如果只是采用上述这种策略来拟合场景，对于一些复杂的场景效果并不理想，一方面很难得到较高分辨率的结果，无法恢复场景中的高频细节，另一方面不能高效利用每条光线的采样点。所以论文提出了两个进一步的优化技巧：位置编码（Position Encoding）、分层采样（Hierarchical Sampling）。</p>
 <h2 id="Position-Encoding"><a href="#Position-Encoding" class="headerlink" title="Position Encoding"></a>Position Encoding</h2><p>Rahaman 等人证明了深度网络倾向于学习到低频函数；使用高频函数把输入映射到更高维的空间中，再传递到神经网络，可以更好地拟合具有高频变化的数据。</p>
-<p>因此为了拟合场景中的高频细节，应用到 NeRF 中，重建 $F<em>\Theta$ 为两个函数的复合形式：$F</em>\Theta=F<em>\Theta^\prime\circ\gamma$。其中 $F</em>\Theta^\prime$ 是普通的MLP，编码函数 $\gamma:\mathbb{R}\to\mathbb{R}^{2L}$ 如下：</p>
+<p>因此为了拟合场景中的高频细节，应用到 NeRF 中，重建的网络表示为两个函数的复合形式：</p>
+<script type="math/tex; mode=display">
+F_\Theta \to F_\Theta=F_\Theta^\prime\circ\gamma</script><p>其中 $F_\Theta^\prime$ 是普通的MLP，编码函数 $\gamma:\mathbb{R}\to\mathbb{R}^{2L}$ 如下：</p>
 <script type="math/tex; mode=display">
 \gamma(p)=(\sin(2^0\pi p),\cos(2^0\pi p),\cdots,\sin(2^{L-1}\pi p),\cos(2^{L-1}\pi p))</script><p>该函数分别作用于空间位置 $\mathbf{x}$ 以及视角方向 $\mathbf{v}$ 的每个分量。（该论文中空间位置和视角方向分别为 $L=10,4$）</p>
 <h2 id="Hierarchical-volume-sampling"><a href="#Hierarchical-volume-sampling" class="headerlink" title="Hierarchical volume sampling"></a>Hierarchical volume sampling</h2><p>前面提出的传统沿光线离散采样 $N$ 个点对于评估 NeRF 网络是不充分的：空白空间和遮挡区域对于渲染图片是没有贡献的，但是仍然被重复的采样评估。通过会早期体渲染工作的借鉴，论文提出了分层采样的策略来提升渲染效率：根据所期望的渲染效果，来按比例地分配采样点。所以并不是使用单个网络来表示场景，而是考虑同时优化两个网络：粗糙网络和精细网络。</p>
