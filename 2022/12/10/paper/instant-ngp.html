@@ -7,7 +7,7 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://paradise-yang.github.io/image/ingp/fig3.png">
 <meta property="article:published_time" content="2022-12-09T16:02:04.000Z">
-<meta property="article:modified_time" content="2022-12-11T05:35:19.209Z">
+<meta property="article:modified_time" content="2022-12-11T05:44:35.765Z">
 <meta property="article:author" content="Paradise">
 <meta property="article:tag" content="NeRF">
 <meta property="article:tag" content="Paper">
@@ -54,7 +54,7 @@
   isHome: false,
   isHighlightShrink: false,
   isToc: true,
-  postUpdate: '2022-12-11 13:35:19'
+  postUpdate: '2022-12-11 13:44:35'
 }</script><noscript><style type="text/css">
   #nav {
     opacity: 1
@@ -189,15 +189,16 @@
         <td>
             <center>
                 <img src="/image/ingp/fig3.png"   
-                     width="942.5" height="441"/>
+                     width="904.8" height="423.36"/>
             </center>
         </td>   <!--<center>标签将图片居中-->
     </tr>
 </table>
 
-<p>每个级别（上图中显示的红色和蓝色）都是独立的，并且在概念上是将<strong>特征向量存储在网格的顶点处</strong>，其分辨率被选择为介于最粗略和最精细网格分辨率之间的几何级数 [$N<em>{min},N</em>{max}$]：</p>
+<p>每个级别（上图中显示的红色和蓝色）都是独立的，并且在概念上是将<strong>特征向量存储在网格的顶点处</strong>，其分辨率被选择为介于最粗略和最精细网格分辨率之间的几何级数：</p>
 <script type="math/tex; mode=display">
 \begin{aligned}
+&[N_{min},N_{max}] \\
 N_{l}&:=\lfloor N_{min}\cdot b^l \rfloor, \\
 b&:=exp\left(\frac{ln N_{max}-ln N_{min}}{L-1}\right).
 \end{aligned}</script><p>$N_{max}$ 的选择是为了匹配训练数据中最精细的细节。由于级别 $L$ 的数量很大，因此生长因子通常很小。论文中用例为 $b\in[1.38,2]$。</p>
@@ -251,7 +252,8 @@ h(\mathbf{x})=\left(\bigoplus_{i=1}^d x_i \pi_i\right) mod\ T.</script><p>其中
 <li>精细级别由于其精细的网格分辨率可以捕获细节（高频）特征，但会遭受许多冲突——即哈希函数将不同点映射到同一个表条目上。附近具有相等整数坐标 $\lfloor\mathbf{x}_l\rfloor$ 的输入不被视为冲突；当不同的整数坐标哈希映射到相同的索引时才视为发生冲突。幸运的是，这样的<strong>冲突是伪随机分散在空间中的，并且在统计上不太可能同时发生在单个给定点的每个层级中</strong>。</li>
 </ul>
 <p><strong>当训练样本以上述方式冲突时，它们相应的梯度会平均</strong>。考虑到此类样本对最终重建的重要性很少相等。例如，辐射场中可见表面上的一个点将对重建图像有很大的贡献（具有高可见性和高密度，这两项都会成倍地影响反向传播梯度的大小），将导致其表条目发生较大变化；而空白空间中恰好引用同一条目的点将具有更小的权重。结果，更重要样本点的梯度支配了冲突平均值，并且有问题的表中条目自然会以反映更高权重点的需求的方式进行优化；然后，不太重要的点将通过多分辨率层次结构中的其他级别对其最终输出进行校正。</p>
-<p>哈希编码的多分辨率方面涵盖了从保证无碰撞的粗分辨率 $𝑁<em>{min}$ 到任务所需的最精细分辨率 $𝑁</em>{max}$ 的全部范围。因此，它保证包括所有可以进行有意义学习的尺度，而不管稀疏性如何。 几何缩放允许仅用 $\mathcal{O}(log(N<em>{max}/N</em>{min}))$ 个层级覆盖这些尺度，这允许为 $𝑁_{max}$ 选择一个保守的大值。</p>
+<p>哈希编码的多分辨率方面涵盖了从保证无碰撞的粗分辨率 $𝑁_{min}$ </p>
+<p>到任务所需的最精细分辨率 $𝑁<em>{max}$ 的全部范围。因此，它保证包括所有可以进行有意义学习的尺度，而不管稀疏性如何。 几何缩放允许仅用 $\mathcal{O}(log(N</em>{max}/N<em>{min}))$ 个层级覆盖这些尺度，这允许为 $𝑁</em>{max}$ 选择一个保守的大值。</p>
 <h2 id="Online-adaptivity"><a href="#Online-adaptivity" class="headerlink" title="Online adaptivity"></a>Online adaptivity</h2><p>注意，如果输入 $\mathbf{x}$ 的分布在训练期间随时间变化，例如，如果它们集中在一个小区域中，那么更精细的网格层级将经历更少的冲突，并且可以学习更准确的函数。换句话说，多分辨率哈希编码自动适应训练数据分布，继承了基于树的编码的优点，而无需维护可能导致训练期间离散跳跃的特定任务数据结构。其中一个应用程序，第 5.3 节中的神经辐射缓存（neural radiance caching），不断适应动画视点和 3D 内容，极大地受益于此功能。</p>
 <h2 id="𝑑-linear-interpolation"><a href="#𝑑-linear-interpolation" class="headerlink" title="𝑑-linear interpolation"></a>𝑑-linear interpolation</h2><p>对查询的哈希表条目进行插值可确保编码 $enc(\mathbf{x};\theta)$ 以及通过链式法则与神经网络 $m(enc(\mathbf{x};\theta);\Phi)$ 的组合是连续的。如果没有插值，网络输出中将出现网格对齐的不连续性（grid-aligned discontinuities），这将导致不希望的块状外观。 人们可能需要更高阶的平滑度，例如在逼近偏微分方程时。 计算机图形学中的一个具体示例是有符号距离函数（SDF，signed distance functions），在这种情况下，梯度 $\partial m(enc(\mathbf{x};\theta);\Phi)/\partial \mathbf{x}$，即表面法线，在理想情况下也是连续的。对于这种情况，我们在附录 A 中提供了一种低成本的方法。</p>
 <h1 id="Implementation"><a href="#Implementation" class="headerlink" title="Implementation"></a>Implementation</h1><p>为了演示多分辨率哈希编码的速度，论文在 CUDA 中实现，并将其与 tiny-cuda-nn 框架的 fast fully-fused 的 MLP 集成。 </p>
@@ -261,7 +263,7 @@ h(\mathbf{x})=\left(\bigoplus_{i=1}^d x_i \pi_i\right) mod\ T.</script><p>其中
 <p>每次查找的最佳特征维度 $F$ 的数量取决于 GPU 架构。 一方面，在前面提到的流式处理方法中只有少数有利于缓存局部性；但另一方面，较大的 $F$ 通过允许 F-wide 向量加载指令有利于内存一致性。$F=2$ 为我们的 GPU 提供了最佳的成本质量权衡，我们在所有实验中都使用它； 见图 5。</p>
 <p>$\mathbf{MLP\ architecture.}$ 在所有任务中，除了我们稍后将描述的 NeRF之外，我们使用具有两个隐藏层的 MLP，这些隐藏层的宽度为 64 个神经元和校正线性单元（ReLU，rectified linear unit）激活函数，以及一个线性输出层。对于 NeRF 和 SDF，最大分辨率 $N_{max}$ 设置为 $2048\times$ 场景大小，十亿像素图像宽度的一半，在辐射缓存（radiance caching）中设置为 $219$（大值以支持扩展场景中的近距离物体）。</p>
 <p>$\mathbf{Initialization.}$ 我们根据 Glorot 和 Bengio 初始化神经网络权重，以提供合理的激活缩放比例及其在整个神经网络层中的梯度。 我们使用均匀分布 $\mathcal{U}(-10^{-4},10^{-4})$ 初始化哈希表条目以提供少量随机性，同时鼓励初始预测接近于零。 这种初始化在我们所有的任务中都运行良好。 我们还尝试了各种不同的分布，包括零初始化，所有这些都会导致初始收敛速度稍微差一些。 散列表似乎对初始化方案具有鲁棒性。</p>
-<p>$\mathbf{Training.}$ 我们通过应用 Adam 优化器联合训练神经网络权重和哈希表条目，其中我们设置 $\beta_1=0.9,\beta_2=0.99,\epsilon=10^{-15}$。$\beta_1$ 和 $\beta_2$ 的选择只有很小的差别，但是当它们的梯度稀疏并且很弱时，$\epsilon=10^{-15}$ 的小值可以显著加速哈希表条目的收敛。为了防止长时间训练后出现发散，我们将弱 $L_2$ 正则化（因子 $10^{-6}$）应用于神经网络权重，而没有应用在哈希表条目上。</p>
+<p>$\mathbf{Training.}$ 我们通过应用 Adam 优化器联合训练神经网络权重和哈希表条目，其中我们设置 $\beta_1=0.9$，$\beta_2=0.99$，$\epsilon=10^{-15}$。$\beta_1$ 和 $\beta_2$ 的选择只有很小的差别，但是当它们的梯度稀疏并且很弱时，$\epsilon=10^{-15}$ 的小值可以显著加速哈希表条目的收敛。为了防止长时间训练后出现发散，我们将弱 $L_2$ 正则化（因子 $10^{-6}$）应用于神经网络权重，而没有应用在哈希表条目上。</p>
 <p>在拟合十亿像素图片或 NeRF 时，使用 $\mathcal{L}^2$ 损失。对于 SDF，使用平均绝对百分比误差（MAPE，mean absolute percentage error），$|prediction-target|/(|target|+0.01)$，对于神经辐射缓存，使用亮度相关的（luminance-relative） $\mathcal{L}^2$ 损失。</p>
 <p>我们观察到最快的收敛速度下，符号距离函数的学习率为 $10^{−4}$，否则为 $10^{−2}$，神经辐射缓存的批处理大小为 $2^{14}$，否则为 $2^{18}$。</p>
 <p>最后，对于梯度正好为 $0$ 的哈希表条目，我们跳过 Adam 步骤。这在梯度稀疏时节省了$\sim 10\%$的性能，这在 $T\gg BatchSize$ 时很常见。尽管这种启发式违反了 Adam 背后的一些假设，但我们观察到收敛性没有下降。</p>
