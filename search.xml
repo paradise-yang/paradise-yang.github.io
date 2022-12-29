@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>相机模型中坐标系问题</title>
+      <link href="/2022/12/29/coordinate.html"/>
+      <url>/2022/12/29/coordinate.html</url>
+      
+        <content type="html"><![CDATA[<p>在涉及到三维重建的相机模型中，真实三维世界中的某一点和其对应像素点之间是通过坐标系的转换得到的。这个过程具体涉及了四个坐标系：世界坐标系、相机坐标系、图像坐标系、像素坐标系。下述文章主要给出转换过程，以辅助理解坐标系的关机、相机光线的生成等问题。具体流程：</p><ul><li><strong>世界坐标系</strong>通过平移和旋转得到<strong>相机坐标系</strong>；</li><li><strong>相机坐标系</strong>通过成像模型原理得到<strong>图像坐标系</strong>；</li><li><strong>图像坐标系</strong>通过平移和缩放得到<strong>像素坐标系</strong>。</li></ul><p>整体示意图和<strong>从世界坐标系到像素坐标系的整体公式</strong>如下：</p><script type="math/tex; mode=display">z_c\left(\begin{array}{c}u \\ v \\ 1\end{array}\right)=\left(\begin{array}{ccc}\frac{1}{dx} & 0 & u_0 \\0 & \frac{1}{dy} & v_0 \\0 & 0 & 1 \end{array}\right)\left(\begin{array}{cccc}f & 0 & 0 & 0\\0 & f & 0 & 0\\0 & 0 & 1 & 0\end{array}\right)\left(\begin{array}{cc}R & T \\0 & c \\\end{array}\right)\left(\begin{array}{c}x_w \\ y_w \\ z_w \\1\end{array}\right)</script><p><img src="https://pic3.zhimg.com/80/v2-fc2d3cb6c20336174849bfb89f665262_720w.webp" alt="img|" style="zoom:80%;" /></p><h1 id="世界坐标系—-gt-相机坐标系"><a href="#世界坐标系—-gt-相机坐标系" class="headerlink" title="世界坐标系—&gt;相机坐标系"></a>世界坐标系—&gt;相机坐标系</h1><p><img src="https://pic3.zhimg.com/80/v2-9713c17b9725f602c1b5431783dbb316_720w.webp" alt="img|" style="zoom:75%;" /></p><script type="math/tex; mode=display">\left(\begin{array}{c}x_c \\ y_c \\ z_c \\1\end{array}\right)=\left(\begin{array}{cc}R & T \\0 & c \\\end{array}\right)_{4\times 4}\left(\begin{array}{c}x_w \\ y_w \\ z_w \\1\end{array}\right)</script><h1 id="相机坐标系—-gt-图像坐标系"><a href="#相机坐标系—-gt-图像坐标系" class="headerlink" title="相机坐标系—&gt;图像坐标系"></a>相机坐标系—&gt;图像坐标系</h1><p><img src="https://pic2.zhimg.com/80/v2-fc062f8ea80bec759403e46e601c58ed_720w.webp" alt="img"></p><p>由小孔成像原理，$f$ 为相机焦距：</p><script type="math/tex; mode=display">\begin{aligned}&\frac{x_c}{x}=\frac{y_c}{y}=\frac{z_c}{f} \\\Rightarrow & x=\frac{x_c}{z_c}f,\quad y=\frac{y_c}{z_c}f\end{aligned}</script><p>从而有：</p><script type="math/tex; mode=display">\left(\begin{array}{c}x \\ y \\ 1\end{array}\right)=\frac{1}{z_c}\left(\begin{array}{cccc}f & 0 & 0 & 0\\0 & f & 0 & 0\\0 & 0 & 1 & 0\end{array}\right)\left(\begin{array}{c}x_c \\ y_c \\ z_c \\1\end{array}\right)</script><h1 id="图像坐标系—-gt-图像坐标系"><a href="#图像坐标系—-gt-图像坐标系" class="headerlink" title="图像坐标系—&gt;图像坐标系"></a>图像坐标系—&gt;图像坐标系</h1><p>由于图像坐标系和像素坐标系处于同一平面，故两者之间的差异在于坐标原点的位置和单位。像素坐标系的原点在图像坐标系的左上角，同时像素坐标系的单位为像素。</p><p><img src="https://pic3.zhimg.com/80/v2-fc2d3cb6c20336174849bfb89f665262_720w.webp" alt="img|" style="zoom:80%;" /></p><p>故两个坐标系之间的变换满足：</p><script type="math/tex; mode=display">u=\frac{x}{dx}+u_0,\quad v=\frac{y}{dy}+v_0.</script><p>其中 $dx,dy$ 表示像素坐标系中每个像素点的宽和高，而图像坐标系的原点在像素坐标系中的横纵坐标分别为 $u_0,v_0$。从而有：</p><script type="math/tex; mode=display">\left(\begin{array}{c}u \\ v \\ 1\end{array}\right)=\left(\begin{array}{ccc}\frac{1}{dx} & 0 & u_0 \\0 & \frac{1}{dy} & v_0 \\0 & 0 & 1 \end{array}\right)\left(\begin{array}{c}x \\ y \\1\end{array}\right)</script>]]></content>
+      
+      
+      <categories>
+          
+          <category> Basic Knowledge </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Basic Knowledge </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Instant-ngp</title>
       <link href="/2022/12/10/paper/instant-ngp.html"/>
       <url>/2022/12/10/paper/instant-ngp.html</url>
@@ -99,9 +124,9 @@
       
         <tags>
             
-            <tag> NeRF </tag>
-            
             <tag> Basic Knowledge </tag>
+            
+            <tag> NeRF </tag>
             
         </tags>
       
@@ -336,11 +361,11 @@
       
         <tags>
             
+            <tag> Paradise的电影乐园 爱情 </tag>
+            
             <tag> Paradise的电影乐园 </tag>
             
             <tag> Paradise的电影乐园 传记 </tag>
-            
-            <tag> Paradise的电影乐园 爱情 </tag>
             
         </tags>
       
@@ -392,9 +417,9 @@
       
         <tags>
             
-            <tag> Paradise的电影乐园 </tag>
-            
             <tag> Paradise的电影乐园 爱情 </tag>
+            
+            <tag> Paradise的电影乐园 </tag>
             
         </tags>
       
