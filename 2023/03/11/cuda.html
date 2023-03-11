@@ -1,0 +1,334 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>CUDA基础与自动求导教学文档 | Paradise</title><meta name="author" content="Paradise"><meta name="copyright" content="Paradise"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="CUDA的基础教学文档，以及自动求导教学">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CUDA基础与自动求导教学文档">
+<meta property="og:url" content="https://paradise-yang.github.io/2023/03/11/cuda.html">
+<meta property="og:site_name" content="Paradise">
+<meta property="og:description" content="CUDA的基础教学文档，以及自动求导教学">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://paradise-yang.github.io/image/cuda.png">
+<meta property="article:published_time" content="2023-03-11T07:28:59.000Z">
+<meta property="article:modified_time" content="2023-03-11T08:28:28.569Z">
+<meta property="article:author" content="Paradise">
+<meta property="article:tag" content="Basic Knowledge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://paradise-yang.github.io/image/cuda.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://paradise-yang.github.io/2023/03/11/cuda"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'CUDA基础与自动求导教学文档',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-03-11 16:28:28'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">12</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/image/cuda.png')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Paradise</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">CUDA基础与自动求导教学文档</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="fa-fw post-meta-icon far fa-calendar-alt"></i><span class="post-meta-label">Created</span><time datetime="2023-03-11T07:28:59.000Z" title="Created 2023-03-11 15:28:59">2023-03-11</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Basic-Knowledge/">Basic Knowledge</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="CUDA基础与自动求导教学文档"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1 前言"></a>1 前言</h1><p>相比于一般的CPU代码，CUDA代码可以充分利用GPU中更多的运算核心。适合用于大规模的并行计算，提高运算效率。然而，CUDA代码的门槛比较高，代码比较复杂，并且不易debug。只有充分了解原理，才能减少失误，提高编程效率。</p>
+<p>网上有许多很详细的CUDA编程教学。如果我哪里描述得不清楚，可以自行去网上搜搜看。如果有什么意见建议，也欢迎大家指出，我会尽快更新。</p>
+<h1 id="2-CUDA基础知识"><a href="#2-CUDA基础知识" class="headerlink" title="2 CUDA基础知识"></a>2 CUDA基础知识</h1><h2 id="2-1-文件格式"><a href="#2-1-文件格式" class="headerlink" title="2.1 文件格式"></a>2.1 文件格式</h2><p><code>“.cu”</code> 文件中可以含有在GPU上调用/执行的代码，所以一般会用 <code>“.cu”</code> 代替 <code>“.cpp”</code>。而头文件依然可以沿用 <code>“.h”</code>，当然，使用 <code>“.cuh”</code> 作为在CPU上的函数的头文件在结构上更为合理。</p>
+<h2 id="2-2-前缀"><a href="#2-2-前缀" class="headerlink" title="2.2 前缀"></a>2.2 前缀</h2><p>在CUDA中，<code>host</code> 和 <code>device</code> 是两个重要的概念，我们用 <code>host</code> 指代CPU及其内存，而用 <code>device</code> 指代GPU及其内存。因此，为了区分变量的位置，变量名一般会有前缀：host_，device_，也可以省略为 h_，d_。</p>
+<ul>
+<li>函数一般分为三种：<ul>
+<li>在CPU上调用，在CPU上执行；</li>
+<li>在CPU上调用，在GPU上执行；</li>
+<li>在GPU上调用，在GPU上执行。</li>
+</ul>
+</li>
+</ul>
+<p>分别对应以下三种关键字：__host__，__global__，__device__。使用时声明在函数前面即可，甚至可以声明两种，比如： </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__host__ __device__ void func_1(float&amp; A);</span><br></pre></td></tr></table></figure>
+<p>这样函数 func_1 既可以在CPU上调用执行，也可以在GPU上调用执行。</p>
+<ul>
+<li><p>__host__ 函数就是c++中最普通的函数，所以一般可以省略不写，只有在同时声明 __host__ 和 __device__ 的时候才有必要强调。</p>
+</li>
+<li><p>__global__ 函数必须为 void 类型，因为涉及到CPU与GPU之间的信息传输。调用的时候是在CPU上，比如说在 <code>&quot;main.cu&quot;</code> 里，但是函数内部是在GPU上的。</p>
+</li>
+<li>__device__ 函数一般调用的时候是在 __global__ 函数内部。</li>
+</ul>
+<h2 id="2-3-流程"><a href="#2-3-流程" class="headerlink" title="2.3 流程"></a>2.3 流程</h2><p>一般的代码流程为：</p>
+<ol>
+<li>分配CPU、GPU上的内存空间。</li>
+<li>将变量、参数等从CPU拷贝到GPU分配好的空间上。</li>
+<li>使用 __global__ 函数从CPU端调用GPU的空间进行并行运算。</li>
+<li>将计算结果从GPU拷贝到CPU上并保存。</li>
+<li>释放CPU、GPU的内存。</li>
+</ol>
+<p>这5步可以与C++中的类（class）结合，1、2步放在构造函数中，3、4步放在普通函数中，5步放在析构函数中。</p>
+<h2 id="2-4-内存相关"><a href="#2-4-内存相关" class="headerlink" title="2.4 内存相关"></a>2.4 内存相关</h2><h3 id="2-4-1内存分配"><a href="#2-4-1内存分配" class="headerlink" title="2.4.1内存分配"></a>2.4.1内存分配</h3><p>对于CPU数组直接 <code>malloc</code> 就好。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">h_vertices = (float *)malloc(N * sizeof(float));</span><br></pre></td></tr></table></figure>
+<p>或者使用锁页内存。好像说在拷贝时速度更快？具体请查询 nvidia文档。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaHostAlloc(&amp;h_vertices_2, N * sizeof(float), cudaHostAllocDefault);</span><br></pre></td></tr></table></figure>
+<p>对GPU数组可以使用 <code>cudaMalloc</code> 函数。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaMalloc(&amp;d_vertices, N * sizeof(float));</span><br></pre></td></tr></table></figure>
+<p>分配空间一般可以放在类的构造函数里，避免后续使用时因为忘记分配空间而报错。</p>
+<p><strong>注：</strong>在分配前一定要先声明该变量。声明一般放在类的头文件中。如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">private:</span><br><span class="line">float *h_vertices, *d_vertices;</span><br></pre></td></tr></table></figure>
+<h3 id="2-4-2-内存释放"><a href="#2-4-2-内存释放" class="headerlink" title="2.4.2 内存释放"></a>2.4.2 内存释放</h3><p>使用完毕后，针对上面的三种申请方式，分别使用以下释放方式就好。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">free(h_vertices);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaFreeHost(h_vertices_2);</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaFree(d_vertices);</span><br></pre></td></tr></table></figure>
+<p>内存释放可以放在类的析构函数中。</p>
+<h3 id="2-4-3-内存拷贝"><a href="#2-4-3-内存拷贝" class="headerlink" title="2.4.3 内存拷贝"></a>2.4.3 内存拷贝</h3><p>分为四种类型：CPU到CPU，CPU到GPU，GPU到CPU，GPU到GPU。</p>
+<p>分别对应四个指令：<code>udaMemcpyHostToHost</code>，<code>cudaMemcpyHostToDevice</code>，<code>cudaMemcpyDeviceToHost</code>，<code>cudaMemcpyDeviceToDevice</code>。</p>
+<p>使用 <code>cudaMemcpy</code> 函数来拷贝，以第二种为例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaMemcpy(d_vertices, h_vertices, N * sizeof(float), cudaMemcpyHostToDevice);</span><br></pre></td></tr></table></figure>
+<p>其中d_vertices、h_vertices都是已经分配好空间的，长度为N的float类型数组。d_、h_分别代表该数组位于GPU和CPU上（前文有提到）。</p>
+<ul>
+<li><p><code>cudaMemcpy</code> 函数只能在CPU中调用。</p>
+</li>
+<li><p><code>cudaMemcpy</code> 中四个参数依次是：拷贝目的地的起始地址、需要拷贝的数组的起始地址、拷贝长度（以字节为单位）、拷贝类型。</p>
+</li>
+<li><p><code>cudaMemcpy</code> 在拷贝前会执行同步函数$cudaDeviceSynchronize();$，所以如果想并行执行拷贝命令，可以使用异步拷贝：</p>
+</li>
+<li><p><code>cudaMemcpyAsync</code>，并加入第五个参数：cuda流。这在后面会提到。例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaMemcpyAsync(d_vertices, h_vertices, N * sizeof(float), cudaMemcpyHostToDevice, stream[0]);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><strong>注：</strong>前两个参数都是起始地址，所以对于CPU上 <code>float</code> 类型的常量，在输入 <code>cudaMemcpy</code> 函数时要使用 <code>&amp;</code>取地址。但 GPU 常量一般无法在 __host__ 函数中声明，所以要声明数组，再分配空间。例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">float h_eta = 1.49;</span><br><span class="line">float *d_eta;</span><br><span class="line">cudaMalloc(&amp;d_eta, sizeof(float));</span><br><span class="line">cudaMemcpy(d_eta, &amp;h_eta, sizeof(float), cudaMemcpyHostToDevice);</span><br><span class="line">//至此*d_eta = 1.49，并且在GPU上了。</span><br><span class="line">cudaFree(d_eta);</span><br></pre></td></tr></table></figure>
+<h2 id="2-5-核函数"><a href="#2-5-核函数" class="headerlink" title="2.5 核函数"></a>2.5 核函数</h2><p>从流程中可以看到，__global__ 函数是 cuda 并行计算的核心，所以我们一般也称之为核函数（kernel\ function）。</p>
+<p>核函数在调用时需要声明 $&lt;&lt;<blkPGrd,\ thrPBlk>&gt;&gt;$ 来指定cuda所需要的线程数量。例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input, output, N);</span><br></pre></td></tr></table></figure>
+<p>其中 func_2 是一个 __global__ 函数，blkPGrd 和 thrPBlk 都是 dim3 类型的变量，dim3 可以理解为无符号整型的三维向量 (x,y,z)。</p>
+<p>在定义 blkPGrd 和 thrPBlk 时，系统会默认缺失值为1。这样会方便我们使用一维、二维向量。比如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dim3 blkPGrd(3,2);</span><br></pre></td></tr></table></figure>
+<p>x 的值就是 0，1，2 中的一个，y 的值就是 0，1 中的一个。</p>
+<p>一般来说一维就够用了，计算起来更方便，并且可以直接用 int 类型初始化 blkPGrd 和 thrPBlk。</p>
+<p><strong>注：</strong>这里的 input、output 等参数，包括 N 要么用指针（*），要么传地址（\&amp;）。尽量不要直接(int N)传值，尤其是非标量的参数，因为传值会先把这个值复制到GPU上，再进行计算。影响效率不说，更增加了出错几率。所以，这些参数都要提前在GPU上分配好空间，因为核函数内部使用的参数是在GPU上的。</p>
+<p>当执行到核函数内部，我们认为此时已经在GPU上了。首先需要计算出线程的序号，并忽略超出的部分。例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__global__ void func_2  (float* input, float* output, const int&amp; N)</span><br><span class="line">&#123;</span><br><span class="line">	//总序号 = 每个block含有的线程个数 * block序号 + 当前block下的线程号</span><br><span class="line">	int index = blockDim.x * blockIdx.x + threadIdx.x; </span><br><span class="line">	//超出需要计算的个数的这些线程直接返回</span><br><span class="line">	//一定要注意！不然会报越界的错误</span><br><span class="line">	if (index &gt;= N)</span><br><span class="line">	&#123;</span><br><span class="line">		return;</span><br><span class="line">	&#125;</span><br><span class="line">	//other computation</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关于 2、3维的使用请参考网上的教程吧。处理矩阵、图片相关的问题会稍微方便一些。不过用一维 index/ 每行的个数 n 就可以得到行idx，用 index\%n 就可以得到列 idx，和二维 index 的 idx.x、idx.y 本质上是一样的。</p>
+<h2 id="2-6-结构"><a href="#2-6-结构" class="headerlink" title="2.6 结构"></a>2.6 结构</h2><p>讲了这么多还不清楚blkPGrd和thrPBlk到底有什么意义啊？为什么要起这两个名字啊？这就要从GPU的结构说起了。</p>
+<p><img src="https://img-blog.csdnimg.cn/73a0872067e640d58aedefde49ca0a14.png#pic_center" alt="CUDA" style="zoom:80%;" /></p>
+<p>图片为 CUDA结构示意图，其中 blkPGrd(3,2), thrPBlk(5,3);</p>
+<p>图片节选自：<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44966641/article/details/124448102">https://blog.csdn.net/weixin_44966641/article/details/124448102</a></p>
+<ul>
+<li><p>GPU的最小单元是线程（thread），一般的显卡中32个线程为一束（warp）。运行时，如果命令一致，这一束线程会同时执行命令（并行）；而如果命令不一致，这32个线程就会依次执行每种命令（串行）。这是GPU的物理结构导致的。所以如果核函数中的if分支很多，导致每一束的线程经常分在不同的if分支中，就会影响并行效率。不过准确性是一定可以保证的，如果不追求极致效率，if分支多一些也无妨。</p>
+</li>
+<li><p>多个线程构成一个线程块（block）。thrPBlk是 threadsPerBlock 的缩写（我自己瞎缩的），即每个线程块中的线程个数。通常为32（一线程束）的倍数。每种显卡的上限不同，3090最多好像是1024，有些老显卡只支持256。不过thrPBlk也不是越大越好。运算速度具体和什么有关俺也不太清楚。为了在不同服务器上能正常运行，我一般写成256，经过测试速度和512基本一样。</p>
+</li>
+</ul>
+<ul>
+<li><p>而多个线程块构成一个网格（grid）。blkPGrd是blocksPerGrid的缩写，即每个网格中的线程块个数。这一数目往往是根据你需要的线程总数决定的。比如你优化的网格有N个三角形，每个线程控制一个三角形，即总共需要至少N个线程，那么在一维情况下就是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">blkPGrd = (N + thrPBlk - 1) / thrPBlk;</span><br></pre></td></tr></table></figure>
+<p>公式可以留作思考题，如果你理解了GPU结构，这个公式是很容易推出来的。</p>
+<p>==思考题2：==为什么不写成如下形式？想不出来可以来问我:)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">blkPGrd = (N - 1) / thrPBlk + 1;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>最后做个形象的类比：某小学校长需要拧 1200 个螺丝。学校每个年级 256 个学生，平均分为 8 个班，每班 32 人。则需要 (1200 + 256 - 1) / 256 = 5 个年级就够了，总共调用了 5 * 256 = 1280 个学生。这样就多出 80 个幸运儿可以摸鱼，也就是上面代码中超过 N 的部分直接 return。而 blkPGrd 如果取 4 及以下就拧不完螺丝，如果取 6 及以上就有更多的学生没螺丝拧。</p>
+</li>
+</ul>
+<h2 id="2-7-CUDA流"><a href="#2-7-CUDA流" class="headerlink" title="2.7 CUDA流"></a>2.7 CUDA流</h2><p>某些时候，多个核函数是可以并行的。比如我们想对于input_a和input_b分别依次执行func_2和func_3，但a、b之间是独立的。直接写代码就会变成以下这样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_b, output_b, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_b, output_b, N);</span><br></pre></td></tr></table></figure>
+<p>但上面四条语句是依次执行的，效率不够高。此时就可以用到 cuda流。<strong>同一个流内是依次执行的，但不同流之间不会互相影响。</strong>这样就可以完美解决上面的问题。使用方法为：</p>
+<ol>
+<li><p>声明cuda流变量：以下二者均可，之后以第一种为例。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cudaStream_t stream[2];</span><br><span class="line"></span><br><span class="line">cudaStream_t stream0, stream1;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建流：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaStreamCreate(&amp;stream[k]);（k=0，1）</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>修改上面四句话为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[0]&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[1]&gt;&gt;&gt; (input_b, output_b, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[0]&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[1]&gt;&gt;&gt; (input_b, output_b, N);</span><br><span class="line"></span><br><span class="line">cudaDeviceSynchronize();</span><br></pre></td></tr></table></figure>
+<p>这一行为<strong>同步函数</strong>，作用是等待两个流全部执行完将运算同步方便后续运算。</p>
+<p>在运行的时候，先开始执行第一行的核函数 func_2。紧接着就会读取第二行。由于第二行用的流 stream[1] 是空闲的，会同时执行第二行的核函数 func_2。紧接着读取第三行。直到第一行运行完毕，stream[0] 变成空闲的，第三行核函数 func_3 才会被执行。同理，直到第二行运行完毕，stream[1] 变成空闲的，第四行核函数 func_3 才会被执行。</p>
+</li>
+<li><p>销毁cuda流：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaStreamDestroy(stream[k]);（k=0，1）</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<ul>
+<li><p><strong>注1：</strong>尖括号中第三个变量的含义是共享内存，一般用不到，写 0 就完事了。如果需要的话再参考网上教程吧。</p>
+</li>
+<li><p><strong>注2：</strong>当尖括号中只有 blkPGrd，thrPBlk 这两个变量时，调用默认cuda流。读取第二行时，由于默认流被占用，所以会等到第一行运行完默认流变成空闲的时候才会执行第二行。尖括号中要么写两个变量要么写四个，不能只写三个。</p>
+</li>
+<li><p><strong>注3：</strong>流的上限好像是1024？但是一般用不到那么多流，十几个就顶天了。并不是流越多执行就越快，如果GPU核心不够了，就算流是空闲的也不会执行该语句。</p>
+</li>
+</ul>
+<h2 id="2-8-CUDA运算库的使用"><a href="#2-8-CUDA运算库的使用" class="headerlink" title="2.8 CUDA运算库的使用"></a>2.8 CUDA运算库的使用</h2><p>除了自己编写核函数之外，也可以用许多现成来调用GPU做计算。例如线性代数库cuBLAS，稀疏矩阵库cuSPARSE，规约计算库Thrust等等。具体的请参考<a target="_blank" rel="noopener" href="https://docs.nvidia.com/cuda/">Cuda Toolkit官方文档</a> 这里着重介绍一下cuBLAS吧，毕竟对我们来说用得最多。</p>
+<ol>
+<li><p>声明cublashandle变量：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasHandle_t handle[2];</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建handle：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasCreate(&amp;handle[k]);（k=0，1）</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将 handle 与 cuda流绑定（在 cudaStreamCreate 之后）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasSetStream(handle[k], stream[k]);（k=0，1）</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>设置指针类型：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasSetPointerMode(handle[k], CUBLAS_POINTER_MODE_DEVICE);（k=0，1）</span><br></pre></td></tr></table></figure>
+<p>默认类型为 <code>CUBLAS_POINTER_MODE_HOST</code>。用 host 上的变量来储存计算结果，包含了 “在GPU上计算结果” 和 “将结果拷贝回CPU” 两步。即相当于 <code>CUBLAS_POINTER_MODE_DEVICE + cudaMemcpyDeviceToHost</code> 。</p>
+<p>由于拷贝之前会先同步，等待前面的代码全部执行完毕，所以不适用于多流并行。当然如果只使用一次的话可以去掉这一步使用默认指针类型。</p>
+</li>
+<li><p>以平方和运算为例，其他运算请参照官网文档。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cublasSdot(handle[0], 100, output_a, 1, output_a, 1, d_a);</span><br><span class="line">cublasSdot(handle[1], 100, output_b, 1, output_b, 1, d_b);</span><br><span class="line">// 紧接着使用异步拷贝</span><br><span class="line">cudaMemcpyAsync(h_a, d_a, sizeof(float), cudaMemcpyDeviceToHost, stream[0]);</span><br><span class="line">cudaMemcpyAsync(h_b, d_b, sizeof(float), cudaMemcpyDeviceToHost, stream[1]);</span><br><span class="line">// 多流并行计算结束，使用同步函数同步结果。</span><br><span class="line">cudaDeviceSynchronize();</span><br><span class="line">//输出计算结果</span><br><span class="line">printf(&quot;h_a = %f, h_b = %f \n&quot;, h_a, h_b);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>销毁handle：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasDestroy(handle[k]);（k=0，1）</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">Author: </span><span class="post-copyright-info"><a href="https://paradise-yang.github.io">syo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">Link: </span><span class="post-copyright-info"><a href="https://paradise-yang.github.io/2023/03/11/cuda.html">https://paradise-yang.github.io/2023/03/11/cuda.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Basic-Knowledge/">Basic Knowledge</a></div><div class="post_share"><div class="social-share" data-image="/image/cuda.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2022/12/29/coordinate.html"><img class="next-cover" src="/image/coordinate.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">相机模型中坐标系问题</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><div><a href="/2022/12/29/coordinate.html" title="相机模型中坐标系问题"><img class="cover" src="/image/coordinate.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-12-29</div><div class="title">相机模型中坐标系问题</div></div></a></div><div><a href="/2022/11/13/network.html" title="神经网络简介"><img class="cover" src="/image/all.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-11-13</div><div class="title">神经网络简介</div></div></a></div><div><a href="/2022/11/17/volume.html" title="体渲染相关知识"><img class="cover" src="/image/volume.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-11-17</div><div class="title">体渲染相关知识</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Paradise</div><div class="author-info__description">Paradise的电影乐园</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">12</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/paradise-yang"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/paradise-yang" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:ly_1207@mail.ustc.edu.cn" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">1 前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-CUDA%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="toc-number">2.</span> <span class="toc-text">2 CUDA基础知识</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 文件格式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-%E5%89%8D%E7%BC%80"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 前缀</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-%E6%B5%81%E7%A8%8B"><span class="toc-number">2.3.</span> <span class="toc-text">2.3 流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-%E5%86%85%E5%AD%98%E7%9B%B8%E5%85%B3"><span class="toc-number">2.4.</span> <span class="toc-text">2.4 内存相关</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-1%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D"><span class="toc-number">2.4.1.</span> <span class="toc-text">2.4.1内存分配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-2-%E5%86%85%E5%AD%98%E9%87%8A%E6%94%BE"><span class="toc-number">2.4.2.</span> <span class="toc-text">2.4.2 内存释放</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-3-%E5%86%85%E5%AD%98%E6%8B%B7%E8%B4%9D"><span class="toc-number">2.4.3.</span> <span class="toc-text">2.4.3 内存拷贝</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-%E6%A0%B8%E5%87%BD%E6%95%B0"><span class="toc-number">2.5.</span> <span class="toc-text">2.5 核函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-%E7%BB%93%E6%9E%84"><span class="toc-number">2.6.</span> <span class="toc-text">2.6 结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-7-CUDA%E6%B5%81"><span class="toc-number">2.7.</span> <span class="toc-text">2.7 CUDA流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-8-CUDA%E8%BF%90%E7%AE%97%E5%BA%93%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">2.8.</span> <span class="toc-text">2.8 CUDA运算库的使用</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/03/11/cuda.html" title="CUDA基础与自动求导教学文档"><img src="/image/cuda.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="CUDA基础与自动求导教学文档"/></a><div class="content"><a class="title" href="/2023/03/11/cuda.html" title="CUDA基础与自动求导教学文档">CUDA基础与自动求导教学文档</a><time datetime="2023-03-11T07:28:59.000Z" title="Created 2023-03-11 15:28:59">2023-03-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/12/29/coordinate.html" title="相机模型中坐标系问题"><img src="/image/coordinate.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="相机模型中坐标系问题"/></a><div class="content"><a class="title" href="/2022/12/29/coordinate.html" title="相机模型中坐标系问题">相机模型中坐标系问题</a><time datetime="2022-12-28T16:02:04.000Z" title="Created 2022-12-29 00:02:04">2022-12-29</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/12/10/paper/instant-ngp.html" title="Instant-ngp"><img src="/image/ingp/fig3.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Instant-ngp"/></a><div class="content"><a class="title" href="/2022/12/10/paper/instant-ngp.html" title="Instant-ngp">Instant-ngp</a><time datetime="2022-12-09T16:02:04.000Z" title="Created 2022-12-10 00:02:04">2022-12-10</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/12/05/paper/neus.html" title="NeuS"><img src="/image/neus/neus.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="NeuS"/></a><div class="content"><a class="title" href="/2022/12/05/paper/neus.html" title="NeuS">NeuS</a><time datetime="2022-12-04T16:02:04.000Z" title="Created 2022-12-05 00:02:04">2022-12-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/12/04/paper/nerf.html" title="NeRF"><img src="/image/nerf/nerf.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="NeRF"/></a><div class="content"><a class="title" href="/2022/12/04/paper/nerf.html" title="NeRF">NeRF</a><time datetime="2022-12-03T16:02:04.000Z" title="Created 2022-12-04 00:02:04">2022-12-04</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('/image/cuda.png')"><div id="footer-wrap"><div class="copyright">&copy;2022 - 2023 By Paradise</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>if (!window.MathJax) {
+  window.MathJax = {
+    tex: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"]],
+      tags: 'ams'
+    },
+    chtml: {
+      scale: 1.1
+    },
+    options: {
+      renderActions: {
+        findScript: [10, doc => {
+          for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+            const display = !!node.type.match(/; *mode=display/)
+            const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+            const text = document.createTextNode('')
+            node.parentNode.replaceChild(text, node)
+            math.start = {node: text, delim: '', n: 0}
+            math.end = {node: text, delim: '', n: 0}
+            doc.math.push(math)
+          }
+        }, ''],
+        insertScript: [200, () => {
+          document.querySelectorAll('mjx-container').forEach(node => {
+            if (node.hasAttribute('display')) {
+              btf.wrap(node, 'div', { class: 'mathjax-overflow' })
+            } else {
+              btf.wrap(node, 'span', { class: 'mathjax-overflow' })
+            }
+          });
+        }, '', false]
+      }
+    }
+  }
+  
+  const script = document.createElement('script')
+  script.src = 'https://cdn.jsdelivr.net/npm/mathjax/es5/tex-mml-chtml.min.js'
+  script.id = 'MathJax-script'
+  script.async = true
+  document.head.appendChild(script)
+} else {
+  MathJax.startup.document.state(0)
+  MathJax.texReset()
+  MathJax.typeset()
+}</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

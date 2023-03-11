@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>CUDA基础与自动求导教学文档</title>
+      <link href="/2023/03/11/cuda.html"/>
+      <url>/2023/03/11/cuda.html</url>
+      
+        <content type="html"><![CDATA[<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1 前言"></a>1 前言</h1><p>相比于一般的CPU代码，CUDA代码可以充分利用GPU中更多的运算核心。适合用于大规模的并行计算，提高运算效率。然而，CUDA代码的门槛比较高，代码比较复杂，并且不易debug。只有充分了解原理，才能减少失误，提高编程效率。</p><p>网上有许多很详细的CUDA编程教学。如果我哪里描述得不清楚，可以自行去网上搜搜看。如果有什么意见建议，也欢迎大家指出，我会尽快更新。</p><h1 id="2-CUDA基础知识"><a href="#2-CUDA基础知识" class="headerlink" title="2 CUDA基础知识"></a>2 CUDA基础知识</h1><h2 id="2-1-文件格式"><a href="#2-1-文件格式" class="headerlink" title="2.1 文件格式"></a>2.1 文件格式</h2><p><code>“.cu”</code> 文件中可以含有在GPU上调用/执行的代码，所以一般会用 <code>“.cu”</code> 代替 <code>“.cpp”</code>。而头文件依然可以沿用 <code>“.h”</code>，当然，使用 <code>“.cuh”</code> 作为在CPU上的函数的头文件在结构上更为合理。</p><h2 id="2-2-前缀"><a href="#2-2-前缀" class="headerlink" title="2.2 前缀"></a>2.2 前缀</h2><p>在CUDA中，<code>host</code> 和 <code>device</code> 是两个重要的概念，我们用 <code>host</code> 指代CPU及其内存，而用 <code>device</code> 指代GPU及其内存。因此，为了区分变量的位置，变量名一般会有前缀：host_，device_，也可以省略为 h_，d_。</p><ul><li>函数一般分为三种：<ul><li>在CPU上调用，在CPU上执行；</li><li>在CPU上调用，在GPU上执行；</li><li>在GPU上调用，在GPU上执行。</li></ul></li></ul><p>分别对应以下三种关键字：__host__，__global__，__device__。使用时声明在函数前面即可，甚至可以声明两种，比如： </p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__host__ __device__ void func_1(float&amp; A);</span><br></pre></td></tr></table></figure><p>这样函数 func_1 既可以在CPU上调用执行，也可以在GPU上调用执行。</p><ul><li><p>__host__ 函数就是c++中最普通的函数，所以一般可以省略不写，只有在同时声明 __host__ 和 __device__ 的时候才有必要强调。</p></li><li><p>__global__ 函数必须为 void 类型，因为涉及到CPU与GPU之间的信息传输。调用的时候是在CPU上，比如说在 <code>&quot;main.cu&quot;</code> 里，但是函数内部是在GPU上的。</p></li><li>__device__ 函数一般调用的时候是在 __global__ 函数内部。</li></ul><h2 id="2-3-流程"><a href="#2-3-流程" class="headerlink" title="2.3 流程"></a>2.3 流程</h2><p>一般的代码流程为：</p><ol><li>分配CPU、GPU上的内存空间。</li><li>将变量、参数等从CPU拷贝到GPU分配好的空间上。</li><li>使用 __global__ 函数从CPU端调用GPU的空间进行并行运算。</li><li>将计算结果从GPU拷贝到CPU上并保存。</li><li>释放CPU、GPU的内存。</li></ol><p>这5步可以与C++中的类（class）结合，1、2步放在构造函数中，3、4步放在普通函数中，5步放在析构函数中。</p><h2 id="2-4-内存相关"><a href="#2-4-内存相关" class="headerlink" title="2.4 内存相关"></a>2.4 内存相关</h2><h3 id="2-4-1内存分配"><a href="#2-4-1内存分配" class="headerlink" title="2.4.1内存分配"></a>2.4.1内存分配</h3><p>对于CPU数组直接 <code>malloc</code> 就好。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">h_vertices = (float *)malloc(N * sizeof(float));</span><br></pre></td></tr></table></figure><p>或者使用锁页内存。好像说在拷贝时速度更快？具体请查询 nvidia文档。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaHostAlloc(&amp;h_vertices_2, N * sizeof(float), cudaHostAllocDefault);</span><br></pre></td></tr></table></figure><p>对GPU数组可以使用 <code>cudaMalloc</code> 函数。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaMalloc(&amp;d_vertices, N * sizeof(float));</span><br></pre></td></tr></table></figure><p>分配空间一般可以放在类的构造函数里，避免后续使用时因为忘记分配空间而报错。</p><p><strong>注：</strong>在分配前一定要先声明该变量。声明一般放在类的头文件中。如：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">private:</span><br><span class="line">float *h_vertices, *d_vertices;</span><br></pre></td></tr></table></figure><h3 id="2-4-2-内存释放"><a href="#2-4-2-内存释放" class="headerlink" title="2.4.2 内存释放"></a>2.4.2 内存释放</h3><p>使用完毕后，针对上面的三种申请方式，分别使用以下释放方式就好。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">free(h_vertices);</span><br></pre></td></tr></table></figure><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaFreeHost(h_vertices_2);</span><br></pre></td></tr></table></figure><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaFree(d_vertices);</span><br></pre></td></tr></table></figure><p>内存释放可以放在类的析构函数中。</p><h3 id="2-4-3-内存拷贝"><a href="#2-4-3-内存拷贝" class="headerlink" title="2.4.3 内存拷贝"></a>2.4.3 内存拷贝</h3><p>分为四种类型：CPU到CPU，CPU到GPU，GPU到CPU，GPU到GPU。</p><p>分别对应四个指令：<code>udaMemcpyHostToHost</code>，<code>cudaMemcpyHostToDevice</code>，<code>cudaMemcpyDeviceToHost</code>，<code>cudaMemcpyDeviceToDevice</code>。</p><p>使用 <code>cudaMemcpy</code> 函数来拷贝，以第二种为例：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaMemcpy(d_vertices, h_vertices, N * sizeof(float), cudaMemcpyHostToDevice);</span><br></pre></td></tr></table></figure><p>其中d_vertices、h_vertices都是已经分配好空间的，长度为N的float类型数组。d_、h_分别代表该数组位于GPU和CPU上（前文有提到）。</p><ul><li><p><code>cudaMemcpy</code> 函数只能在CPU中调用。</p></li><li><p><code>cudaMemcpy</code> 中四个参数依次是：拷贝目的地的起始地址、需要拷贝的数组的起始地址、拷贝长度（以字节为单位）、拷贝类型。</p></li><li><p><code>cudaMemcpy</code> 在拷贝前会执行同步函数$cudaDeviceSynchronize();$，所以如果想并行执行拷贝命令，可以使用异步拷贝：</p></li><li><p><code>cudaMemcpyAsync</code>，并加入第五个参数：cuda流。这在后面会提到。例：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaMemcpyAsync(d_vertices, h_vertices, N * sizeof(float), cudaMemcpyHostToDevice, stream[0]);</span><br></pre></td></tr></table></figure></li></ul><p><strong>注：</strong>前两个参数都是起始地址，所以对于CPU上 <code>float</code> 类型的常量，在输入 <code>cudaMemcpy</code> 函数时要使用 <code>&amp;</code>取地址。但 GPU 常量一般无法在 __host__ 函数中声明，所以要声明数组，再分配空间。例：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">float h_eta = 1.49;</span><br><span class="line">float *d_eta;</span><br><span class="line">cudaMalloc(&amp;d_eta, sizeof(float));</span><br><span class="line">cudaMemcpy(d_eta, &amp;h_eta, sizeof(float), cudaMemcpyHostToDevice);</span><br><span class="line">//至此*d_eta = 1.49，并且在GPU上了。</span><br><span class="line">cudaFree(d_eta);</span><br></pre></td></tr></table></figure><h2 id="2-5-核函数"><a href="#2-5-核函数" class="headerlink" title="2.5 核函数"></a>2.5 核函数</h2><p>从流程中可以看到，__global__ 函数是 cuda 并行计算的核心，所以我们一般也称之为核函数（kernel\ function）。</p><p>核函数在调用时需要声明 $&lt;&lt;<blkPGrd,\ thrPBlk>&gt;&gt;$ 来指定cuda所需要的线程数量。例：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input, output, N);</span><br></pre></td></tr></table></figure><p>其中 func_2 是一个 __global__ 函数，blkPGrd 和 thrPBlk 都是 dim3 类型的变量，dim3 可以理解为无符号整型的三维向量 (x,y,z)。</p><p>在定义 blkPGrd 和 thrPBlk 时，系统会默认缺失值为1。这样会方便我们使用一维、二维向量。比如：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dim3 blkPGrd(3,2);</span><br></pre></td></tr></table></figure><p>x 的值就是 0，1，2 中的一个，y 的值就是 0，1 中的一个。</p><p>一般来说一维就够用了，计算起来更方便，并且可以直接用 int 类型初始化 blkPGrd 和 thrPBlk。</p><p><strong>注：</strong>这里的 input、output 等参数，包括 N 要么用指针（*），要么传地址（\&amp;）。尽量不要直接(int N)传值，尤其是非标量的参数，因为传值会先把这个值复制到GPU上，再进行计算。影响效率不说，更增加了出错几率。所以，这些参数都要提前在GPU上分配好空间，因为核函数内部使用的参数是在GPU上的。</p><p>当执行到核函数内部，我们认为此时已经在GPU上了。首先需要计算出线程的序号，并忽略超出的部分。例如：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__global__ void func_2  (float* input, float* output, const int&amp; N)</span><br><span class="line">&#123;</span><br><span class="line">//总序号 = 每个block含有的线程个数 * block序号 + 当前block下的线程号</span><br><span class="line">int index = blockDim.x * blockIdx.x + threadIdx.x; </span><br><span class="line">//超出需要计算的个数的这些线程直接返回</span><br><span class="line">//一定要注意！不然会报越界的错误</span><br><span class="line">if (index &gt;= N)</span><br><span class="line">&#123;</span><br><span class="line">return;</span><br><span class="line">&#125;</span><br><span class="line">//other computation</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>关于 2、3维的使用请参考网上的教程吧。处理矩阵、图片相关的问题会稍微方便一些。不过用一维 index/ 每行的个数 n 就可以得到行idx，用 index\%n 就可以得到列 idx，和二维 index 的 idx.x、idx.y 本质上是一样的。</p><h2 id="2-6-结构"><a href="#2-6-结构" class="headerlink" title="2.6 结构"></a>2.6 结构</h2><p>讲了这么多还不清楚blkPGrd和thrPBlk到底有什么意义啊？为什么要起这两个名字啊？这就要从GPU的结构说起了。</p><p><img src="https://img-blog.csdnimg.cn/73a0872067e640d58aedefde49ca0a14.png#pic_center" alt="CUDA" style="zoom:80%;" /></p><p>图片为 CUDA结构示意图，其中 blkPGrd(3,2), thrPBlk(5,3);</p><p>图片节选自：<a href="https://blog.csdn.net/weixin_44966641/article/details/124448102">https://blog.csdn.net/weixin_44966641/article/details/124448102</a></p><ul><li><p>GPU的最小单元是线程（thread），一般的显卡中32个线程为一束（warp）。运行时，如果命令一致，这一束线程会同时执行命令（并行）；而如果命令不一致，这32个线程就会依次执行每种命令（串行）。这是GPU的物理结构导致的。所以如果核函数中的if分支很多，导致每一束的线程经常分在不同的if分支中，就会影响并行效率。不过准确性是一定可以保证的，如果不追求极致效率，if分支多一些也无妨。</p></li><li><p>多个线程构成一个线程块（block）。thrPBlk是 threadsPerBlock 的缩写（我自己瞎缩的），即每个线程块中的线程个数。通常为32（一线程束）的倍数。每种显卡的上限不同，3090最多好像是1024，有些老显卡只支持256。不过thrPBlk也不是越大越好。运算速度具体和什么有关俺也不太清楚。为了在不同服务器上能正常运行，我一般写成256，经过测试速度和512基本一样。</p></li></ul><ul><li><p>而多个线程块构成一个网格（grid）。blkPGrd是blocksPerGrid的缩写，即每个网格中的线程块个数。这一数目往往是根据你需要的线程总数决定的。比如你优化的网格有N个三角形，每个线程控制一个三角形，即总共需要至少N个线程，那么在一维情况下就是：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">blkPGrd = (N + thrPBlk - 1) / thrPBlk;</span><br></pre></td></tr></table></figure><p>公式可以留作思考题，如果你理解了GPU结构，这个公式是很容易推出来的。</p><p>==思考题2：==为什么不写成如下形式？想不出来可以来问我:)</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">blkPGrd = (N - 1) / thrPBlk + 1;</span><br></pre></td></tr></table></figure></li><li><p>最后做个形象的类比：某小学校长需要拧 1200 个螺丝。学校每个年级 256 个学生，平均分为 8 个班，每班 32 人。则需要 (1200 + 256 - 1) / 256 = 5 个年级就够了，总共调用了 5 * 256 = 1280 个学生。这样就多出 80 个幸运儿可以摸鱼，也就是上面代码中超过 N 的部分直接 return。而 blkPGrd 如果取 4 及以下就拧不完螺丝，如果取 6 及以上就有更多的学生没螺丝拧。</p></li></ul><h2 id="2-7-CUDA流"><a href="#2-7-CUDA流" class="headerlink" title="2.7 CUDA流"></a>2.7 CUDA流</h2><p>某些时候，多个核函数是可以并行的。比如我们想对于input_a和input_b分别依次执行func_2和func_3，但a、b之间是独立的。直接写代码就会变成以下这样：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_b, output_b, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk&gt;&gt;&gt; (input_b, output_b, N);</span><br></pre></td></tr></table></figure><p>但上面四条语句是依次执行的，效率不够高。此时就可以用到 cuda流。<strong>同一个流内是依次执行的，但不同流之间不会互相影响。</strong>这样就可以完美解决上面的问题。使用方法为：</p><ol><li><p>声明cuda流变量：以下二者均可，之后以第一种为例。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cudaStream_t stream[2];</span><br><span class="line"></span><br><span class="line">cudaStream_t stream0, stream1;</span><br></pre></td></tr></table></figure></li><li><p>创建流：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaStreamCreate(&amp;stream[k]);（k=0，1）</span><br></pre></td></tr></table></figure></li><li><p>修改上面四句话为：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[0]&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_2 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[1]&gt;&gt;&gt; (input_b, output_b, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[0]&gt;&gt;&gt; (input_a, output_a, N);</span><br><span class="line"></span><br><span class="line">func_3 &lt;&lt;&lt;blkPGrd, thrPBlk, 0, stream[1]&gt;&gt;&gt; (input_b, output_b, N);</span><br><span class="line"></span><br><span class="line">cudaDeviceSynchronize();</span><br></pre></td></tr></table></figure><p>这一行为<strong>同步函数</strong>，作用是等待两个流全部执行完将运算同步方便后续运算。</p><p>在运行的时候，先开始执行第一行的核函数 func_2。紧接着就会读取第二行。由于第二行用的流 stream[1] 是空闲的，会同时执行第二行的核函数 func_2。紧接着读取第三行。直到第一行运行完毕，stream[0] 变成空闲的，第三行核函数 func_3 才会被执行。同理，直到第二行运行完毕，stream[1] 变成空闲的，第四行核函数 func_3 才会被执行。</p></li><li><p>销毁cuda流：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cudaStreamDestroy(stream[k]);（k=0，1）</span><br></pre></td></tr></table></figure></li></ol><ul><li><p><strong>注1：</strong>尖括号中第三个变量的含义是共享内存，一般用不到，写 0 就完事了。如果需要的话再参考网上教程吧。</p></li><li><p><strong>注2：</strong>当尖括号中只有 blkPGrd，thrPBlk 这两个变量时，调用默认cuda流。读取第二行时，由于默认流被占用，所以会等到第一行运行完默认流变成空闲的时候才会执行第二行。尖括号中要么写两个变量要么写四个，不能只写三个。</p></li><li><p><strong>注3：</strong>流的上限好像是1024？但是一般用不到那么多流，十几个就顶天了。并不是流越多执行就越快，如果GPU核心不够了，就算流是空闲的也不会执行该语句。</p></li></ul><h2 id="2-8-CUDA运算库的使用"><a href="#2-8-CUDA运算库的使用" class="headerlink" title="2.8 CUDA运算库的使用"></a>2.8 CUDA运算库的使用</h2><p>除了自己编写核函数之外，也可以用许多现成来调用GPU做计算。例如线性代数库cuBLAS，稀疏矩阵库cuSPARSE，规约计算库Thrust等等。具体的请参考<a href="https://docs.nvidia.com/cuda/">Cuda Toolkit官方文档</a> 这里着重介绍一下cuBLAS吧，毕竟对我们来说用得最多。</p><ol><li><p>声明cublashandle变量：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasHandle_t handle[2];</span><br></pre></td></tr></table></figure></li><li><p>创建handle：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasCreate(&amp;handle[k]);（k=0，1）</span><br></pre></td></tr></table></figure></li><li><p>将 handle 与 cuda流绑定（在 cudaStreamCreate 之后）：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasSetStream(handle[k], stream[k]);（k=0，1）</span><br></pre></td></tr></table></figure></li><li><p>设置指针类型：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasSetPointerMode(handle[k], CUBLAS_POINTER_MODE_DEVICE);（k=0，1）</span><br></pre></td></tr></table></figure><p>默认类型为 <code>CUBLAS_POINTER_MODE_HOST</code>。用 host 上的变量来储存计算结果，包含了 “在GPU上计算结果” 和 “将结果拷贝回CPU” 两步。即相当于 <code>CUBLAS_POINTER_MODE_DEVICE + cudaMemcpyDeviceToHost</code> 。</p><p>由于拷贝之前会先同步，等待前面的代码全部执行完毕，所以不适用于多流并行。当然如果只使用一次的话可以去掉这一步使用默认指针类型。</p></li><li><p>以平方和运算为例，其他运算请参照官网文档。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cublasSdot(handle[0], 100, output_a, 1, output_a, 1, d_a);</span><br><span class="line">cublasSdot(handle[1], 100, output_b, 1, output_b, 1, d_b);</span><br><span class="line">// 紧接着使用异步拷贝</span><br><span class="line">cudaMemcpyAsync(h_a, d_a, sizeof(float), cudaMemcpyDeviceToHost, stream[0]);</span><br><span class="line">cudaMemcpyAsync(h_b, d_b, sizeof(float), cudaMemcpyDeviceToHost, stream[1]);</span><br><span class="line">// 多流并行计算结束，使用同步函数同步结果。</span><br><span class="line">cudaDeviceSynchronize();</span><br><span class="line">//输出计算结果</span><br><span class="line">printf(&quot;h_a = %f, h_b = %f \n&quot;, h_a, h_b);</span><br></pre></td></tr></table></figure></li><li><p>销毁handle：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cublasDestroy(handle[k]);（k=0，1）</span><br></pre></td></tr></table></figure></li></ol>]]></content>
+      
+      
+      <categories>
+          
+          <category> Basic Knowledge </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Basic Knowledge </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>相机模型中坐标系问题</title>
       <link href="/2022/12/29/coordinate.html"/>
       <url>/2022/12/29/coordinate.html</url>
@@ -100,35 +125,6 @@
             <tag> NeRF </tag>
             
             <tag> Paper </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>《Bones and All》(骨及所有)</title>
-      <link href="/2022/11/23/movie/bones_and_all.html"/>
-      <url>/2022/11/23/movie/bones_and_all.html</url>
-      
-        <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-惊悚-爱情"><a href="#Paradise的电影乐园-惊悚-爱情" class="headerlink" title="#Paradise的电影乐园# 惊悚 爱情"></a>#Paradise的电影乐园# 惊悚 爱情</h1><p>导演：Luca Guadagnino<br>主演：Timothée Chalamet、Taylor Russell<br>上映时间：2022年11月23日</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/bones_and_all_1.jpg"                        width="450" height="675"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p><strong>“</strong></p><p><strong>Oh, it’s hard and lonesome road  for us, isn’t it?</strong></p><p><strong>So, that’s no sense in making it lonelier,</strong></p><p><strong>if you don’t have to.</strong></p><p><strong>”</strong></p><p>首先，为了更好的观影体验，前所未有的解释一下电影名称《Bones and All》：（当然仅代表个人理解）</p><p>一方面，“Full Bones”，影片中两位食人者指出：当你吃光所有的一切，骸骨及一切（骨及所有），就像你的第一次一样，对食人者是十分重要的转折点，享受完“Bones and Al”和没有完成这一过程是完全不一样的，就像每个人成人礼一般是特殊的存在，当然这只是这两位食人者的看法，男女主角并不是很认同；</p><p>另一方面，<strong>男主李最后将自己献给了女主玛伦，“I want you to eat me, I want you to feed. Bones and all. It’s beautiful. It’s the easiest thing. Maren, Just love me and eat.”</strong></p><p>其次，还是提前说一下这个吧：这部电影会只有两个直白的偏血腥镜头，不是美式jump scare或者中式的恐怖场景语言或镜头，而是因为食人存在的偏血腥刻画，时长可能也就各一两秒而已，所以要是担心恶心到自己的话，个人觉得也不是很严重？（当然，我接受能力偏强，还是要分人。）</p><p>最后，这是笔者2022年从第79界威尼斯国际电影节首映以及宣传开始吧，期待值最高的一部电影，也是笔者的年度电影片单之一。而且，不得不提的是影片的画面和氛围刻画，是十分艺术与氛围拉满的，<strong>于静谧处的孤独与爆发，于残忍下的美丽与热烈，都藏匿在一帧一帧的画面中</strong>。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/bones_and_all_2.png"                        width="716.4" height="506.4"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p><strong>两座契合的孤岛怪物，于初见一瞥，</strong></p><p><strong>便闻到了彼此的存在，</strong></p><p><strong>你我相拥就已是前所未有的拯救，</strong></p><p><strong>纵使与生俱来的怪物天性终将引领我们走向毁灭，</strong></p><p><strong>但我还是庆幸，</strong></p><p><strong>拥抱过，爱过，陪伴过，</strong></p><p><strong>爱，</strong></p><p><strong>爱到深入骨髓，</strong></p><p><strong>爱到甘愿牺牲，与你融为一体，</strong></p><p><strong>Bones and All，最后所有都献于你，</strong></p><p><strong>残忍，而又美丽。</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/bones_and_all_3.png"                        width="716.4" height="506.4"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>另言之。</p><p>玛伦说：<strong>这个世界围着“我”，建立了一座迷宫。</strong></p><p>生而食人是无法改变的天性，但你我又已经很难抛开自己心中的层层枷锁和条条框框，去纯正的做自己了。为了能够迎合好别人的期待而拼尽全力的假努力，不过最终还是一无所有；而且什么时候你我已经需要像影片里的设定一般，你我必须是不合群，甚至是异类才能是在做自己了？导演就是将角色设定成了如此，于是才有了在人世中的挣扎和孤独，以及尽情去爱的热烈与潇洒，终其痛快的别样自我。</p><p>这可能是你我过往半生，从来不会也说服不了自己去做的事情。即便孤独但是也不敢去尽情的爱，即使耗尽一切悦人求同但是也不敢从容的悦己存异。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/bones_and_all_4.png"                        width="716.4" height="506.4"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><hr><p>哈，<strong>修改不了过往，只能期冀于今后。</strong></p><p>希望于此刻之后的余生，</p><p>你我可以有独属于自己的勇气！</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> Movie </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Paradise的电影乐园 </tag>
-            
-            <tag> Paradise的电影乐园 爱情 </tag>
-            
-            <tag> Paradise的电影乐园 惊悚 </tag>
             
         </tags>
       
@@ -312,143 +308,6 @@
         <tags>
             
             <tag> Git </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>《Jagten》（狩猎）</title>
-      <link href="/2022/11/05/movie/jagten.html"/>
-      <url>/2022/11/05/movie/jagten.html</url>
-      
-        <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-剧情"><a href="#Paradise的电影乐园-剧情" class="headerlink" title="#Paradise的电影乐园# 剧情"></a>#Paradise的电影乐园# 剧情</h1><p>导演：Thomas Vinterberg<br>主演：Mads Mikkelsen<br>上映时间：2012年05月20日</p><p><strong>“</strong><br><strong>看着我！</strong><br><strong>看着我的眼睛，</strong><br><strong>看看我的眼睛里有什么？</strong><br><strong>你看见了什么？</strong><br><strong>什么都没有，</strong><br><strong>一无所有。</strong><br><strong>”</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_6.jpg"                        width="432" height="617.2"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>这是一部，说是寒冷彻骨都不为过的丹麦电影。</p><p>就像每年都要步入的寒冬一样，会在仍处于颤栗中酝酿出近乎绝望的压抑与狂躁，毫不留情且毫无防备的在人性与社会道德上划出深入刻骨的一刀，而且是每年都要划上一般。</p><p>私以为，这更是一部当今互联网人基本上都应该好好看的电影。</p><p>初看这部电影的人，可能处在对其中的孩子“谎话连篇”的愤懑之中，但这绝不是电影的全部。孩子是特殊的弱势群体，在生理和心理都不成熟的阶段，尤其是原生家庭的不作为与养育“只养无育”之下，错误的表达所谓的情感与见解，能一味的归咎于成年人中的“恶”吗？恐怖最大的恶是将其从天使逼入魔鬼的人。</p><p>最可恶的并不是孩子，而是<strong>那群虚伪的，带有偏见的，先入为主的，自封为卫道士的傲慢的大人们。</strong></p><p>卢卡斯因为几句儿童的呓语便毁灭了本归是向好的人生，毁灭过程中最大的破坏力并不是直接由孩子带来的，而是由所谓打着“正义感”旗号的群体带来的，而是由社会群体的排斥与异化所带来的。人是群居动物，这种孤立于排斥的隔阂异化，所带来的伤害无疑是巨大到不可估量的，足以毁灭一个人的所有社会属性了，更何况，这种排斥和针对性的有意异化是冤屈的、是无法辩驳言明的。</p><p><strong>眼见，都并非为实，更何况道听途说？</strong></p><p><strong>在蒙蔽了双眼下驱使出来的“正义感”，是盲目的，是狗屎，是吃人的恶！</strong></p><p><strong>一种被扭曲的思想一旦植入大脑，错，就会无止境的继续下去。</strong>人往往是最不理智的高智慧生物，很可笑的矛盾点，最不理智与智慧。大部分人一旦相信自己是正义的，便会自动带上了有色眼镜，挥起了正义的鞭笞，认为所看到的一切都是支持自己想法的证据，与之相悖的线索全部被刻意忽略或者曲解，践行正义之道、执行正义审判，殊不知挥下的鞭笞是犹如杀人的死神镰刀。不过这就是事实，盲目的正义者们不会关心真相究竟是什么。因为抢站在道德的制高点批判是很容易的一件事，而自己本身的言行会对他人造成怎样的影响却很难预料，甚至不去顾及。人们害怕偏见，害怕排斥，害怕异化，但更多的时候是亲自促成了偏见，亲自执刀而行。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_4.png"                        width="432" height="540"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>这部影片的张力是相当足够的，从开头小镇的和睦祥和到群起的“正义”排斥，导演就是在不温不火的叙事和理智暖色的镜头之中酝酿了所有的排斥，即使是最温暖午后阳光，背后掩藏的都是开枪的“正义之士”。这种张力就是建立在这种排斥和冤屈的对立上，然后精准到位的把这种恶毒的人际对立和人物内心的崩塌完美的展现了出来。作为观影的我们来说，带入故事之后，那种慢慢酝酿而来的恶意和仇恨强烈到近乎可以演化为暴戾之气，不过，那种积郁已久的愤怒迟迟无法爆炸，最后沦为彻骨的寒意。没办法，这就是现实。毫不掩饰的说，第一次观影的我，在众多积怨之下，为男主默泪。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_5.jpg"                        width="648" height="324"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>影片最让人印象深刻的便是在教堂那一幕。卢卡斯非常讽刺来到教堂这个众人乞求救赎的地方，或许在这里所有人顶着上帝普世之爱的光环，是唯一能让他这个“罪人”和一社区“善人”平静共处一室的地方，孩子们用天使般的声音开始唱圣诞颂歌时，这种恶与纯真的巨大反差让男主角的理智处于崩溃边缘，但是终究理智还是没有崩溃。但是当卢卡斯望向身后曾是挚友的人，指控自己的一家低头私语时，他崩溃了，即使事实是挚友一家私语并不是谈论卢卡斯，但是那个动作如烈火灼烧之痛，他崩溃了，愤怒的起身打了挚友几拳，绝望的拉着挚友怒吼到：“看着我！看着我的眼睛！看看我的眼睛里有什么？你看见了什么？什么都没有了，一无所有。”对，没有了，被扼杀完了已经，一无所剩。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_3.png"                        width="432" height="288"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>《狩猎》这个片名也是有一定意味存在的，在最后一幕，卢卡斯就是社会群体森林中那只被追猎的麋鹿，毫无防备，甚至心怀感激的袒露在黑暗森林之中，无数躲在暗中的猎人可以中伤他，而最后那惊人心魄的一枪，足够彰显自封社会傲慢卫道士最大的恶意了，引用这部电影最具知名度的影评：</p><p><strong>“</strong></p><p><strong>枪响了。</strong></p><p><strong>你看到是谁开的枪吗？</strong></p><p><strong>我看不清，</strong></p><p><strong>他站在道德制高点上，他在阳光下。</strong></p><p><strong>”</strong></p><p><strong>他们看似伸张“正义”，却不以真凭实据为基础；</strong></p><p><strong>他们看似维持“公正”，却不以实事求是为准则；</strong></p><p><strong>他们看似通情达理，却在种种行为举止中透露出令人作呕的气息。</strong></p><p><strong>这是最让人心寒的一部分，</strong></p><p><strong>这是最让人愤怒的一部分，</strong></p><p><strong>这是最让人无奈的一部分，</strong></p><p><strong>这同样也是最尖酸讽刺的一部分。</strong></p><p>最后的题外话，不会放在这个平台说的，这种莫须有的道德审判，从古至今已经不少了。红如阮玲玉要自杀，杰克逊也要沉沦。而到了网络时代，这样的案例简直数不胜数：70码的时候，所有人都相信那个受审的不是吴斌是个替身，哪怕警方拿出所有证据；湖北29岁最年轻市长，周森锋必然上面有人；方舟子只要坚持不懈地骂“韩骗子”他就是个抄袭犯代笔作家，出版手稿也无法自证。反正无休止的怀疑、质疑、有罪推定，成本由被怀疑对象承担，收益都是自己的。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/hunt_2.jpg"                        width="637.8" height="425.2"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table>]]></content>
-      
-      
-      <categories>
-          
-          <category> Movie </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Paradise的电影乐园 </tag>
-            
-            <tag> Paradise的电影乐园 剧情 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>《Metropolis》(大都会)</title>
-      <link href="/2022/11/04/movie/metropolis.html"/>
-      <url>/2022/11/04/movie/metropolis.html</url>
-      
-        <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-科幻"><a href="#Paradise的电影乐园-科幻" class="headerlink" title="#Paradise的电影乐园# 科幻"></a>#Paradise的电影乐园# 科幻</h1><p>导演：Friedrich Christian Anton Lang<br>主演：Alfred Abel，Brigitte Helm，Gustav Fröhlich<br>上映时间：1927年01月10日</p><p>  </p><p><strong>“</strong></p><p><strong>Sinnspruch：</strong></p><p><strong>MITILER ZWISCHEN HIRN UND HÄNDEN MUSS DAS HERZ SEIN!</strong></p><p><strong>题记：大脑和双手之间的协调者必定是心！</strong></p><p><strong>”</strong></p><p><strong>“</strong></p><p><strong>„Tausende werden morgen in Wut und Versweiflung fragen:</strong><br><strong>Joh Fredersen,</strong><br><strong>wo ist mein Sohn-!</strong></p><p><strong>明天，上千人会在愤怒和绝望中向你质问：</strong></p><p><strong>约·弗雷德森，我的孩子在哪——！</strong></p><p><strong>”</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/metropolis_2.jpg"                        width="395.82" height="291.6"/>            </center>        </td>   <!--<center>标签将图片居中-->        <td>            <center>            <img src="/image/movie/metropolis_3.jpg"                        width="395.82" height="291.6"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>作为德国电影默片时代的三大扛鼎巨作之一（另外两部：《浮士德》1926年，《柏林：大城市的交响乐》1927年）  </p><p>科幻巨制、表现主义电影《大都会》是默片时代皇冠上璀璨的明珠，是联合国教科文组织编撰的《世界的记忆》中收录的第一部电影。  </p><p>《大都会》在科幻影史上的地位一言以蔽之：<strong>后世任何一部有关想象未来城市的电影，都很难说自己的作品走出了它的影子，可以说后世的电影人不断在弗里茨·郎打造的大都会框架下创造属于自己的未来之城。</strong>例如，《第五元素》里在摩天大厦之间穿针引线的城市交通轨道；《银翼杀手》里永远在冰冷的夜里不见白日的城市；另外，在如今我们最常用的视频通话发明之前，不少科幻电影也已经将《大都会》中的可视电话当成了科技设定的标配；而星球大战系列的机器人C-3PO和MV里带金属胸罩的麦当娜造型雷同，那就是因为二者都借鉴了罗特旺的人造机器人形象。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/metropolis_4.gif"                        width="432" height="324"/>            </center>        </td>   <!--<center>标签将图片居中-->        <td>            <center>            <img src="/image/movie/metropolis_5.gif"                        width="432" height="324"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>提到这部电影不得不提的就是，体现导演弗里茨·郎最初创作意志的原版《大都会》，已然成为了一个失落的传说。在最初发行公司审查原片时，认为故事复杂、片长过长，动手剪辑的大约四分之一的胶片；即使后来德国因为票房惨淡，参照美国上映版本重剪辑，也是不完整且丧失众多内容的版本；直到上世纪末，人们一直以为收入联合国世界文化遗产的2001年茂瑙基金会版本，就是当今现存胶片的最极致版本了，然而在2008年，阿根廷的一些电影爱好者发现了布宜诺斯艾利斯带你应博物馆馆藏的版本长达两个小时，震惊众人，基金会着手修复增添了许多原先版本没有的精彩画面，但也不可避免地在修复版本胶片上留存了许多灰尘和刮痕，甚至一些场景因为孙惠燕汇总，不得不以字幕的表现形式串联起整个故事情节（比如弗雷德森和罗特旺的打斗戏），但总归是沧海遗珠般珍贵与庆幸！</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/metropolis_6.jpg"                        width="420" height="314.3"/>            </center>        </td>   <!--<center>标签将图片居中-->        <td>            <center>            <img src="/image/movie/metropolis_8.jpg"                        width="449.6" height="314.3"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>与空中花园那样和谐美好的乌托邦（Utopia）正相反，反乌托邦讲的是在未来社会中，滥用与过载的技术如何奴役底层人民，并导致被压迫人民物质世界贫瘠、精神家园沦丧。  </p><p>导演弗里茨·郎设定的反乌托邦背景是一座于2000年的机器大都市，这个大都市是由以约·弗雷德森为首的资本家所统治，以此城市被认为地分为了两个世界：居于地面之上鳞次栉比地摩天大厦里、每日只有灯红酒绿、娱人娱己的资本家，作为城市中的“头脑”的象征，指挥着城市运转的机器系统；而屈居于地下永无天日、麻木无果、终日劳作维持机器运转的工人们，是城市中愤懑与彷徨“手”，直到过劳死的那一刻仍不停的辛劳。那“协调者——心”，弗雷德，起初在隔绝一切人间疾苦的”永恒花园“里与众人浪荡嬉戏、不谙世事，在一次工人圣女玛利亚误入此地并与其偶遇之后，一路追随她深入到工人所在地下城之内，体会到了工人们的水深火热之后，向其父亲控诉无果，决定充当”协调者“改变现状。而弗雷德森也由此发现了圣女玛利亚集结工人们演讲布道，决定让科学家罗特旺将半成品机器人制作成圣女玛利亚的模样，以此蛊惑工人暴动，以便镇压；但罗特旺出于对费雷德森的私愤与仇视，表面假装同意，实则指挥机器人煽动整个工人阶层毁灭整个大都会的存在。工人们在被恶意挑起的盛怒之下，摧毁了大都会赖以生存的核心中央机器，致使洪水的侵袭。  </p><p>在展示科技对人的桎梏以及随之而来的社会阶层大分化之后，《大都会》的重心不在于置疑和颠覆，而是调和。  </p><p>技术奇观巨人般的躯壳套着孩童般天真的灵魂，比比谁更幼稚，是轻易挫败魔鬼阴谋的小情小爱，还是初尝人间疾苦就能抹平统治者与被统治者之间鸿沟的公子哥？  </p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/metropolis_9.gif"                        width="432" height="324"/>            </center>        </td>   <!--<center>标签将图片居中-->        <td>            <center>            <img src="/image/movie/metropolis_7.jpg"                        width="432.53" height="324"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>这是一部”基督教寓言“式的科幻电影，其相关设定都可以一一对标《圣经》著作的内容：</p><p>资本家约·弗雷德森——大都会的主宰，耶和华</p><p>玛丽亚——圣母玛丽亚/先知</p><p>工头——先知/使徒</p><p>资本家的儿子弗雷茨——耶稣基督</p><p>巴别塔——天国的建立</p><p>发明家罗特旺——魔鬼撒旦</p><p>机器玛丽亚——敌基督</p><p>这种“基督教寓言”形式的科幻电影模式，也成为了科幻电影拍摄的一种可供借鉴的前例。从某种意义上来说，90年代拍摄的《骇客帝国》，正是这一表现手法的更精细运用。  </p><p>  </p><p>作为一战战败国，那是战后的颓败中迸发出的野蛮生命力，亦是在大发展中困于内在冲突的探讨；</p><p>科幻色彩下的宗教媒介，让你在光怪陆离的影像与行为中感受阶级矛盾的存在、激化、崩塌、协调；</p><p>纵使你是正义的一方，切勿堕入群体无意识的愚昧性，只是言语刺激下就沦为别人的枪口与子弹。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> Movie </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Paradise的电影乐园 </tag>
-            
-            <tag> Paradise的电影乐园 科幻 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>《Becoming Jane》(成为简·奥斯汀)</title>
-      <link href="/2022/11/03/movie/becoming-jane.html"/>
-      <url>/2022/11/03/movie/becoming-jane.html</url>
-      
-        <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-传记-爱情"><a href="#Paradise的电影乐园-传记-爱情" class="headerlink" title="#Paradise的电影乐园# 传记 爱情"></a>#Paradise的电影乐园# 传记 爱情</h1><p>导演：Julian Jarrold<br>主演：Anne Hathaway，James McAvoy<br>上映时间：2007年03月09日</p><p><strong>“</strong><br><strong>Sometimes affection is a shy flower that takes time to blossom.</strong><br><strong>”</strong><br><strong>“</strong><br><strong>Affection is desirable,</strong><br><strong>Money is absolutely indispensable.</strong><br><strong>”</strong>  </p><p>她的心被扰乱了，只是一阵 夏日的狂风。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/becoming_jane_3.jpg"                        width="511.2" height="556"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>在那个英式典雅的时代，</p><p>一个安静的清晨，仿佛古典戏剧一般的开始，一切充满着田园牧歌与优雅的浪漫，</p><p>随着简的钢琴声的响起，群鸟惊飞，众人惊起，从一开始就奠定了简与保守英国乡村生活的格格不入。  </p><p>末了，已是作家的简偶然瞥见了前来观摩自己作品的汤姆，如今却已身为人父，</p><p>当女儿要求简为大家朗读作品时，汤姆严厉的呵斥：“简！” </p><p>错愕写满了简的脸上，</p><p>这是一个无法抵御的桥段，</p><p>本以为一切走向了终结，本以为终是尘埃落定，</p><p>谁料却是一直绵延交织在两人的余生——汤姆以简的名字为女儿命名，而简所写的故事也藏着他们的影子。</p><p>爱，带着观望般的珍重，永远不会厌倦和衰灭，融漾在淡淡的牵念和释然的遗憾之间，绵长一生，徘徊一生……   </p><p></p><p>世俗阻挡的爱情，古往今来的文人骚客写出了太多太多，或壮烈决绝，或凄美哀婉。</p><p>不是每个人都能如罗密欧那般欧式的决绝，如祝英台般中式的缠绵，</p><p>在此，更多的是一种生活的平静，无论是抗争还是妥协。   </p><p></p><p><strong>并不是只有激情迸发时弃世孤行的爱情才最真挚可贵，</strong></p><p><strong>若把世界逼堵到只容两个人立足，</strong></p><p><strong>结局也许早已违背当时的初衷。</strong></p><p><strong>若有天长地久的厮守，也必有终身不忘的情长。</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/becoming_jane_2.jpg"                        width="840" height="560.7"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table>]]></content>
-      
-      
-      <categories>
-          
-          <category> Movie </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Paradise的电影乐园 </tag>
-            
-            <tag> Paradise的电影乐园 传记 </tag>
-            
-            <tag> Paradise的电影乐园 爱情 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>《L&#39;Argent》(钱)</title>
-      <link href="/2022/11/02/movie/largent.html"/>
-      <url>/2022/11/02/movie/largent.html</url>
-      
-        <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-剧情"><a href="#Paradise的电影乐园-剧情" class="headerlink" title="#Paradise的电影乐园# 剧情"></a>#Paradise的电影乐园# 剧情</h1><p>导演：Robert Bresson<br>主演：Christian Patey<br>上映时间：1983年  </p><p><strong>“</strong><br><strong>当你意识到自己的存在和社会的荒谬，</strong><br><strong>而你别无选择时，</strong><br><strong>你会怎么办？</strong><br><strong>他们说</strong><br> <strong>‘ 服从吧，只要你别多管闲事；</strong><br><strong>等着吧，世界很快就会幸福起来。’</strong><br><strong>但我不想等到全世界都幸福，</strong><br><strong>相信我，伊文，那只会等到你变傻，</strong><br><strong>我想现在就得到幸福，用我自己的方法。</strong><br><strong>钱！</strong><br><strong>有形之神，无所不能。</strong><br><strong>”</strong></p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_3.jpg"                        width="691.2" height="388.8"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>法国导演布列松的最后一部作品，一如既往的极简与冷峻，把一切可能引起情绪波动的镜头都省略，唯余平淡、留白。（困的时候真不能看布列松。）    </p><p>看布列松的电影，就好像在看一条三文鱼放在案板上切割，清晰带血，不留一丝余地。  </p><p>500法郎假钞辗转多人，最后经由一场伪证锤死无辜的伊文以牢狱之灾，但这不是一切的结束，而是冷冽悲剧的开始……虚无伴随左右，毁灭不是推波助澜，而是奔赴相拥的终点。  </p><p><strong>推荐理由：</strong></p><p>《电影手册》上法国导演排行榜上名列第一的导演，其最后一部作品将个人风格发挥到了极致。</p><p>“人物是属于导演理念的工具”，电影中人的眼神之间像隔了一层墙，你无法感受到人的呼吸和情绪的冷暖；</p><p>宛似“木偶人”的动作不会诱导无谓的煽情，不会让你有任何偏见与道德审视；</p><p>环境的先导性与延滞性，只提取结果的决定性瞬间，极尽的留白与省略之能事，画外音的自行填补，</p><p>这种冷峻且客观的极简镜头，只是为了展示最终酷烈且无望的主题。  </p><p>不得不提的就是电影的画面：极具老式的胶卷风格，搭配法式建筑与物品，搭配人物如模特的冷峻，这极简的镜头语言将恰到好处的绝佳构图发挥到了极致，随便抽帧便是一幅妥妥的油画或摄影佳作。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_2.jpg"                        width="635" height="384"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>纯粹的善良是存在的，救赎的希望也给予了，但，来不及了。</p><p>他高举斧子：“钱在哪里？”，老妇人的沉默换来了伊文在疯狂中挥下了斧子，</p><p>其后，他踉踉跄跄的走出来，连粘满血的裤子都没有换下，径直的走进一家有警察的酒馆，在喝完酒保为其倒下的酒后，自首。</p><p>料峭，所有的一切都崩溃了，既然无法摆脱困境与煎熬，那我选择堕入虚无与毁灭的深渊，拥抱最后的惨淡。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_4.jpg"                        width="597" height="360"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>钱之下，一切的无能为力、罪恶导向与价值虚无！  </p><p>金钱与权力结构以其固有的“神力”堵住了底层人的生存之路，</p><p>并于百态之下剥夺你仅剩的尊严，</p><p>再于极端情形之下助你踏上一切的罪恶之路，</p><p>就完了么？</p><p>没有，还要在制高点给予你最终的审视、批判你的原罪。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/largent_5.jpg"                        width="480" height="270"/>            </center>        </td>   <!--<center>标签将图片居中-->        <td>            <center>            <img src="/image/movie/largent_6.jpg"                        width="480" height="270"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table>]]></content>
-      
-      
-      <categories>
-          
-          <category> Movie </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Paradise的电影乐园 </tag>
-            
-            <tag> Paradise的电影乐园 剧情 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>《About Time》(时空恋旅人)</title>
-      <link href="/2022/11/01/movie/about_time.html"/>
-      <url>/2022/11/01/movie/about_time.html</url>
-      
-        <content type="html"><![CDATA[<h1 id="Paradise的电影乐园-爱情"><a href="#Paradise的电影乐园-爱情" class="headerlink" title="#Paradise的电影乐园#  爱情"></a>#Paradise的电影乐园#  爱情</h1><p>导演：Richard Curtis</p><p>主演：Domhnall Gleeson，Rachel McAdams</p><p>上映时间：2013年09月04日</p><p><strong>“</strong><br><strong>We’re all traveling through time together</strong><br><strong>every day of our lives.</strong><br><strong>All we can do is</strong><br><strong>do our best to relish this remarkable ride.</strong><br><strong>“</strong>   </p><p>披着科幻超能力外衣的人生爱情小电影。  </p><p>不顾一切要找回认识你的开始、尴尬到不知所措的同行之路、</p><p>不顾一切飞奔回家的普通求婚、每天分别向左向右的地铁站台、</p><p>一场狂风暴雨下荒唐而又甜蜜的婚礼，以及终究是生活的平凡。  </p><p>不要纠结时间悖论的逻辑Bug，去感受另一种生活的交错、平凡与融洽。  </p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/about_time_3.gif"                        width="648" height="269.4"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p><strong>推荐理由：</strong></p><p>初看前半段你会以为是男主超能力的逆袭之路，</p><p>恰恰不然，拥有的能力是为了步入于我而言奢侈的爱情，</p><p>即使我有无限可以容错自身选择的能力，但是选择依然是你，为了遇见你、为了认识你、为了留住你，依然是你；</p><p>虽然我可以选择重新去过每一天，第一次用来经历与度过，第二次则是体验未注意到的小美好，</p><p>但是我终归有着的是当下与你的美好，就像已经经历过一次一样，享受我们这平凡又非凡的生命中每一天。  </p><p>镜头语言是文艺的，角色的内心随着镜头展现的淋漓尽致；另外，配乐是刚刚好的精妙。</p><table frame=void>  <!--使用table标签，且frame=void消除外边框-->    <tr>           <!--<tr>一行的内容<\tr>，<td>一个格子的内容<\td>-->        <td>            <center>            <img src="/image/movie/about_time_2.jpg"                        width="648" height="648"/>            </center>        </td>   <!--<center>标签将图片居中-->    </tr></table><p>穿越的能力会有修改遗憾的可能，这或许是存在于另一维度或者世界的力量，是我们于这个平凡世界里所寄托的无限期冀。  </p><p>如果我们也有穿越时空的能力，每一次遗憾也就会变得有迹可循，离别后的再一次重逢也会很有意义。    </p><p>但是即使已经足够非凡的你我仍然是有着平凡的一生，</p><p>我们可以选择短暂的跳脱并游离于外世，</p><p>不过皆知那不是长久之计，所以尽早地着眼你我前方的美好与未知吧。</p>]]></content>
-      
-      
-      <categories>
-          
-          <category> Movie </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Paradise的电影乐园 </tag>
-            
-            <tag> Paradise的电影乐园 爱情 </tag>
             
         </tags>
       
